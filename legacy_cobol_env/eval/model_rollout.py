@@ -197,6 +197,7 @@ def build_migration_prompt(ticket: dict[str, Any], context: dict[str, Any]) -> s
             "You are migrating a legacy COBOL routine into Python.",
             "Return only JSON in this shape: {\"code\": \"...python source...\"}.",
             "The Python source must define migrate(input_record: str) -> str.",
+            "Returned records must match output_width exactly; never append newline characters.",
             f"Ticket:\n{json.dumps(ticket, indent=2)}",
             f"COBOL files:\n{json.dumps(context['cobol_files'], indent=2)}",
             f"Copybooks:\n{json.dumps(context['copybooks'], indent=2)}",
@@ -218,16 +219,32 @@ def build_repair_prompt(
             "Repair the Python migration after visible test feedback.",
             "Return only JSON in this shape: {\"code\": \"...python source...\"}.",
             "The Python source must define migrate(input_record: str) -> str.",
+            "Returned records must match output_width exactly; never append newline characters.",
             f"Ticket:\n{json.dumps(ticket, indent=2)}",
             f"COBOL files:\n{json.dumps(context['cobol_files'], indent=2)}",
             f"Copybooks:\n{json.dumps(context['copybooks'], indent=2)}",
             f"Parsed layouts:\n{json.dumps(context['layouts'], indent=2)}",
             f"Business rules:\n{json.dumps(context['business_rules'], indent=2)}",
             f"Previous code:\n{previous_code}",
+            f"Visible test status:\n{json.dumps(_visible_status_for_prompt(visible), indent=2)}",
             f"Visible failures:\n{json.dumps(visible['failures'], indent=2)}",
             f"Inspected field_diffs:\n{json.dumps(diffs, indent=2)}",
         ]
     )
+
+
+def _visible_status_for_prompt(visible: dict[str, Any]) -> dict[str, Any]:
+    keys = [
+        "passed",
+        "total",
+        "pass_rate",
+        "syntax_ok",
+        "safety_ok",
+        "interface_ok",
+        "timed_out",
+        "error",
+    ]
+    return {key: visible.get(key) for key in keys if key in visible}
 
 
 def _strip_fence(text: str) -> str:
