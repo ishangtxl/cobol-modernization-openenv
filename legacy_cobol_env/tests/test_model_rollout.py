@@ -179,6 +179,28 @@ def test_repair_prompt_includes_direct_numeric_diff_guidance():
     assert "OUT-TOTAL: PIC 9(7)V99 is 9 fixed-width digits with implied scale 2; format scaled integer digits, not a decimal string." in repair_prompt
 
 
+def test_repair_prompt_includes_runtime_slice_error_guidance():
+    task = load_task(task_id="invoice_occurs_001")
+    provider = RecordingProvider(
+        responses=[
+            json.dumps(
+                {
+                    "code": "def migrate(input_record: str) -> str:\n"
+                    "    return ''.join(str(i) for i in range(0, 36, 9)[:input_record[6:8]])\n"
+                }
+            ),
+            json.dumps({"code": solution_for_task(task)}),
+        ],
+    )
+
+    run_model_repair_rollout(task=task, provider=provider, max_repairs=1)
+
+    repair_prompt = provider.prompts[1]
+    assert "slice indices must be integers" in repair_prompt
+    assert "convert ITEM-COUNT with int(input_record[6:8]) before using it" in repair_prompt
+    assert "use range(count) with start = 8 + idx * 9" in repair_prompt
+
+
 def test_invoice_repair_rollout_has_step_budget_for_diff_and_final_submission():
     task = load_task(task_id="invoice_occurs_001")
     provider = SequenceResponseProvider(

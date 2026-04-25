@@ -97,6 +97,30 @@ def _invoice_bad_repair_seeds() -> list[str]:
         """from decimal import Decimal
 
 def migrate(input_record: str) -> str:
+    record = {
+        "INVOICE-ID": input_record[0:6],
+        "ITEM-COUNT": int(input_record[6:8]),
+        "LINE-ITEMS": [
+            {
+                "ITEM-QTY": int(input_record[i + 0:i + 2]),
+                "ITEM-PRICE": Decimal(int(input_record[i + 2:i + 8])) / Decimal("100"),
+                "TAX-CODE": input_record[i + 8]
+            }
+            for i in range(0, 36, 9)[:input_record[6:8]]
+        ]
+    }
+    tax_table = {"S": Decimal("0.0725"), "R": Decimal("0.0250"), "L": Decimal("0.1000")}
+    invoice_total = Decimal("0")
+    for line_item in record["LINE-ITEMS"]:
+        line_amount = line_item["ITEM-QTY"] * line_item["ITEM-PRICE"]
+        tax_rate = tax_table[line_item["TAX-CODE"]]
+        invoice_total += line_amount + line_amount * tax_rate
+    out_flag = "H" if invoice_total >= Decimal("1000.00") else "L"
+    return record["INVOICE-ID"] + str(invoice_total.quantize(Decimal("1.00"))).zfill(9) + str(record["ITEM-COUNT"]).zfill(2) + out_flag
+""",
+        """from decimal import Decimal
+
+def migrate(input_record: str) -> str:
     invoice_id = input_record[0:6]
     item_count = int(input_record[6:8])
     total = Decimal("0.00")
@@ -144,24 +168,6 @@ def migrate(input_record: str) -> str:
         total += (qty * price) * (Decimal("1.0000") + rate)
     total_str = str(total.quantize(Decimal("0.01"))).zfill(9)
     return f"{invoice_id}{total_str}{item_count:02d}H"
-""",
-        """from decimal import Decimal
-
-def migrate(input_record: str) -> str:
-    invoice_id = input_record[0:6]
-    item_count = min(int(input_record[6:8]), 4)
-    total = Decimal("0.00")
-    rates = {"S": Decimal("0.0725"), "R": Decimal("0.0250"), "L": Decimal("0.1000")}
-    for i in range(item_count):
-        start = 8 + i * 9
-        qty = int(input_record[start:start + 2])
-        price = Decimal(int(input_record[start + 2:start + 8])) / Decimal("100")
-        code = input_record[start + 8:start + 9]
-        line = qty * price
-        total += line + (line * rates.get(code, Decimal("0.0000")))
-    cents = int(total)
-    flag = "H" if item_count else "L"
-    return f"{invoice_id}{cents:09d}{item_count:02d}{flag}"
 """,
     ]
 

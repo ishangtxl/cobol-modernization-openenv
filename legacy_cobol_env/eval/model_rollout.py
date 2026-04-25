@@ -240,6 +240,7 @@ def build_repair_prompt(
             f"Allowed imports: {ALLOWED_IMPORT_TEXT}. Do not import any other modules.",
             COBOL_NUMERIC_RULE,
             REPAIR_DISCIPLINE,
+            build_runtime_error_repair_checklist(visible),
             build_numeric_layout_reminders(ticket, context),
             build_diff_repair_checklist(diffs),
             "Returned records must match output_width exactly; never append newline characters.",
@@ -254,6 +255,28 @@ def build_repair_prompt(
             f"Inspected field_diffs:\n{json.dumps(diffs, indent=2)}",
         ]
     )
+
+
+def build_runtime_error_repair_checklist(visible: dict[str, Any]) -> str:
+    errors = "\n".join(str(failure.get("error") or "") for failure in visible.get("failures", []))
+    lines = ["Runtime error repair checklist:"]
+    if "slice indices must be integers" in errors:
+        lines.append(
+            "- TypeError 'slice indices must be integers': convert ITEM-COUNT with int(input_record[6:8]) before using it; "
+            "do not slice range(...) with input_record[6:8]; for OCCURS use range(count) with start = 8 + idx * 9."
+        )
+    if "invalid format string" in errors or "unsupported format string passed to decimal.Decimal" in errors:
+        lines.append(
+            "- Decimal formatting error: convert monetary totals to integer cents before using :09d; "
+            "for example cents = int((total * 100).quantize(Decimal(\"1\")))."
+        )
+    if "NameError: name 'Decimal' is not defined" in errors:
+        lines.append("- Decimal NameError: include from decimal import Decimal at module scope if Decimal is used.")
+    if "KeyError" in errors and "TAX-CODE" in errors:
+        lines.append("- Tax lookup KeyError: use tax_rates.get(tax_code, Decimal(\"0.0000\")) for unknown/non-taxable codes.")
+    if len(lines) == 1:
+        lines.append("- No recognized runtime pattern; fix the exception shown in Visible test status/failures before changing formatting.")
+    return "\n".join(lines)
 
 
 def build_numeric_layout_reminders(ticket: dict[str, Any], context: dict[str, Any]) -> str:
