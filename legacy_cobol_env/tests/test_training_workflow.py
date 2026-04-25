@@ -88,6 +88,18 @@ def test_local_transformers_provider_can_disable_4bit(tmp_path: Path):
     assert provider.load_in_4bit is False
 
 
+def test_local_transformers_provider_formats_chat_prompt_with_template():
+    class FakeTokenizer:
+        def apply_chat_template(self, messages, tokenize=False, add_generation_prompt=False):
+            assert tokenize is False
+            assert add_generation_prompt is True
+            return "|".join(message["role"] for message in messages)
+
+    provider = LocalTransformersProvider(model_path="unused")
+
+    assert provider._format_prompt(FakeTokenizer(), "hello") == "system|user"
+
+
 def test_write_dry_run_artifacts_creates_metadata_loss_and_plot(tmp_path: Path):
     plan = {
         "dataset_examples": 6,

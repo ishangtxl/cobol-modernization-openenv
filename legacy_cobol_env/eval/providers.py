@@ -108,6 +108,20 @@ class LocalTransformersProvider:
 
     def generate(self, prompt: str) -> str:
         tokenizer, model = self._load()
+        prompt_text = self._format_prompt(tokenizer, prompt)
+        inputs = tokenizer(prompt_text, return_tensors="pt")
+        inputs = inputs.to(model.device) if hasattr(inputs, "to") else inputs
+        output_ids = model.generate(
+            **inputs,
+            max_new_tokens=self.max_new_tokens,
+            do_sample=False,
+            pad_token_id=tokenizer.eos_token_id,
+        )
+        prompt_length = inputs["input_ids"].shape[-1]
+        generated = output_ids[0][prompt_length:]
+        return tokenizer.decode(generated, skip_special_tokens=True)
+
+    def _format_prompt(self, tokenizer: object, prompt: str) -> str:
         messages = [
             {
                 "role": "system",
@@ -116,21 +130,12 @@ class LocalTransformersProvider:
             {"role": "user", "content": prompt},
         ]
         if hasattr(tokenizer, "apply_chat_template"):
-            input_ids = tokenizer.apply_chat_template(
+            return tokenizer.apply_chat_template(
                 messages,
+                tokenize=False,
                 add_generation_prompt=True,
-                return_tensors="pt",
-            ).to(model.device)
-        else:
-            input_ids = tokenizer(prompt, return_tensors="pt").input_ids.to(model.device)
-        output_ids = model.generate(
-            input_ids,
-            max_new_tokens=self.max_new_tokens,
-            do_sample=False,
-            pad_token_id=tokenizer.eos_token_id,
-        )
-        generated = output_ids[0][input_ids.shape[-1] :]
-        return tokenizer.decode(generated, skip_special_tokens=True)
+            )
+        return prompt
 
     def _load(self) -> tuple[object, object]:
         if self._model is not None and self._tokenizer is not None:
