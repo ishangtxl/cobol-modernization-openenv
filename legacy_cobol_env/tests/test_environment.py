@@ -147,6 +147,21 @@ def test_invoice_task_uses_multiple_source_and_copybook_artifacts():
     assert sorted(invoice.copybooks) == ["INVOICE_REC.cpy", "TAX_CODE.cpy"]
 
 
+def test_reset_ticket_exposes_output_contract_without_test_cases():
+    env = LegacyCobolEnvironment()
+    ticket = reset_ticket(env, task_id="invoice_occurs_001")
+
+    assert ticket["output_width"] == 18
+    assert [field["name"] for field in ticket["output_layout"]] == [
+        "OUT-INVOICE-ID",
+        "OUT-TOTAL",
+        "OUT-ITEM-COUNT",
+        "OUT-FLAG",
+    ]
+    assert "visible_cases" not in ticket
+    assert "hidden_cases" not in ticket
+
+
 def test_invoice_visible_hints_do_not_expose_exact_tax_rates_or_formula():
     invoice = next(task for task in all_tasks() if task.task_id == "invoice_occurs_001")
     visible_hint_text = " ".join(invoice.metadata["agent_hints"])

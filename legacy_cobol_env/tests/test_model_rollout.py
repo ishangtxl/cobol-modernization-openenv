@@ -47,6 +47,21 @@ def test_model_rollout_uses_provider_response_and_records_prompt():
     ]
 
 
+def test_invoice_rollout_prompt_includes_output_contract():
+    task = load_task(task_id="invoice_occurs_001")
+    provider = StaticResponseProvider(
+        name="fixture",
+        response=json.dumps({"code": solution_for_task(task)}),
+    )
+
+    trajectory = run_model_rollout(task=task, provider=provider)
+
+    prompt = trajectory["model_turns"][0]["prompt"]
+    assert "output_layout" in prompt
+    assert "OUT-TOTAL" in prompt
+    assert "OUT-ITEM-COUNT" in prompt
+
+
 def test_provider_factory_requires_azure_environment():
     try:
         create_provider("azure-openai", {})

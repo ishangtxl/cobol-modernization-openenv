@@ -177,6 +177,7 @@ class LegacyCobolEnvironment(MCPEnvironment):
             "hidden_tests": len(self._task.hidden_tests),
             "input_width": self._task.metadata["input_width"],
             "output_width": self._task.metadata["output_width"],
+            "output_layout": self._task.metadata["output_layout"],
             "max_steps": MAX_STEPS,
             "allowed_tools": [
                 "read_cobol_file",

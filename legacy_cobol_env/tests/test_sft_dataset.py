@@ -13,6 +13,15 @@ def test_build_oracle_sft_examples_covers_all_tasks():
     assert any(example["family_id"] == "invoice_occurs_totals" for example in examples)
 
 
+def test_oracle_sft_prompt_includes_output_contract():
+    examples = build_oracle_sft_examples(all_tasks())
+    invoice = next(example for example in examples if example["task_id"] == "invoice_occurs_001")
+
+    assert "output_layout" in invoice["prompt"]
+    assert "OUT-TOTAL" in invoice["prompt"]
+    assert "OUT-ITEM-COUNT" in invoice["prompt"]
+
+
 def test_dumps_jsonl_writes_one_json_object_per_line():
     examples = build_oracle_sft_examples(all_tasks()[:1])
     payload = dumps_jsonl(examples)

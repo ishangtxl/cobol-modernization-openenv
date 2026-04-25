@@ -25,6 +25,7 @@ def build_oracle_sft_examples(tasks: Iterable[TaskInstance]) -> list[dict]:
             "hidden_tests": len(task.hidden_tests),
             "input_width": task.metadata["input_width"],
             "output_width": task.metadata["output_width"],
+            "output_layout": task.metadata["output_layout"],
         }
         context = {
             "cobol_files": task.cobol_files,
@@ -66,4 +67,3 @@ def dumps_jsonl(examples: list[dict]) -> str:
             )
         )
     return "\n".join(rows) + "\n"
-
