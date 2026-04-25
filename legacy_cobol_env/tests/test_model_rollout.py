@@ -323,3 +323,23 @@ def test_invoice_repair_rollout_has_step_budget_for_two_repairs_and_final_submis
     assert trajectory["final"]["public_score"] == 1.0
     assert len(trajectory["model_turns"]) == 3
     assert [step["tool_name"] for step in trajectory["steps"]][-1] == "submit_final"
+
+
+def test_invoice_repair_rollout_has_step_budget_for_three_repairs_and_final_submission():
+    task = load_task(task_id="invoice_occurs_001")
+    bad_code = "def migrate(input_record: str) -> str:\n    return '0'\n"
+    provider = SequenceResponseProvider(
+        name="invoice-three-repairs",
+        responses=[
+            json.dumps({"code": bad_code}),
+            json.dumps({"code": bad_code}),
+            json.dumps({"code": bad_code}),
+            json.dumps({"code": solution_for_task(task)}),
+        ],
+    )
+
+    trajectory = run_model_repair_rollout(task=task, provider=provider, max_repairs=3)
+
+    assert trajectory["final"]["public_score"] == 1.0
+    assert len(trajectory["model_turns"]) == 4
+    assert [step["tool_name"] for step in trajectory["steps"]][-1] == "submit_final"
