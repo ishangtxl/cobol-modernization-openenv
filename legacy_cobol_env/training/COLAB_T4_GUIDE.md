@@ -122,12 +122,18 @@ Evaluate the invoice target first:
 ```bash
 !LOCAL_MODEL_PATH=legacy_cobol_env/outputs/training/sft-qwen25-coder-7b-t4 \
 LOCAL_BASE_MODEL_PATH=Qwen/Qwen2.5-Coder-7B-Instruct \
+LOCAL_DO_SAMPLE=1 \
+LOCAL_TEMPERATURE=0.2 \
+LOCAL_TOP_P=0.9 \
 PYTHONPATH=. python -m legacy_cobol_env.eval.run_model_rollouts \
   --provider local-transformers \
   --task-id invoice_occurs_001 \
   --max-repairs 2 \
   --output legacy_cobol_env/outputs/evals/local_sft_invoice_rollout.json
 ```
+
+The `LOCAL_DO_SAMPLE` flags are optional, but useful when greedy decoding repeats
+the same failed repair after visible diffs.
 
 Then inspect the score:
 

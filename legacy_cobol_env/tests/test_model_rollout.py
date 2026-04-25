@@ -2,7 +2,7 @@ import json
 
 from legacy_cobol_env.eval.model_rollout import extract_code_from_response, run_model_repair_rollout, run_model_rollout
 from legacy_cobol_env.eval.oracle_solutions import solution_for_task
-from legacy_cobol_env.eval.providers import SequenceResponseProvider, StaticResponseProvider, create_provider
+from legacy_cobol_env.eval.providers import LocalTransformersProvider, SequenceResponseProvider, StaticResponseProvider, create_provider
 from legacy_cobol_env.server.task_bank import all_tasks, load_task
 
 
@@ -89,6 +89,8 @@ def test_invoice_rollout_prompt_includes_output_contract():
     assert "PIC fields with V use an implied decimal point" in prompt
     assert "fixed-width numeric outputs are digits only" in prompt
     assert "OUT-FLAG is H when INVOICE-TOTAL >= 1000.00, otherwise L" in prompt
+    assert 'ITEM-PRICE: PIC 9(4)V99 has implied scale 2; parse raw digits with Decimal(int(slice)) / Decimal("100").' in prompt
+    assert "OUT-TOTAL: PIC 9(7)V99 is 9 fixed-width digits with implied scale 2; format scaled integer digits, not a decimal string." in prompt
 
 
 def test_provider_factory_requires_azure_environment():
@@ -98,6 +100,24 @@ def test_provider_factory_requires_azure_environment():
         assert "AZURE_OPENAI_ENDPOINT" in str(exc)
     else:
         raise AssertionError("expected missing Azure configuration to fail")
+
+
+def test_provider_factory_allows_local_sampling_controls():
+    provider = create_provider(
+        "local-transformers",
+        {
+            "LOCAL_MODEL_PATH": "/tmp/adapter",
+            "LOCAL_BASE_MODEL_PATH": "Qwen/Qwen2.5-Coder-7B-Instruct",
+            "LOCAL_DO_SAMPLE": "1",
+            "LOCAL_TEMPERATURE": "0.2",
+            "LOCAL_TOP_P": "0.9",
+        },
+    )
+
+    assert isinstance(provider, LocalTransformersProvider)
+    assert provider.do_sample is True
+    assert provider.temperature == 0.2
+    assert provider.top_p == 0.9
 
 
 def test_repair_rollout_uses_visible_diff_before_second_draft():
@@ -133,6 +153,30 @@ def test_repair_rollout_includes_syntax_status_when_no_case_failures():
     assert len(provider.prompts) == 2
     assert '"syntax_ok": false' in provider.prompts[1]
     assert "unterminated string literal" in provider.prompts[1]
+
+
+def test_repair_prompt_includes_direct_numeric_diff_guidance():
+    task = load_task(task_id="invoice_occurs_001")
+    provider = RecordingProvider(
+        responses=[
+            json.dumps(
+                {
+                    "code": "from decimal import Decimal\n\n"
+                    "def migrate(input_record: str) -> str:\n"
+                    "    return input_record[0:6] + '036480.0202H'\n"
+                }
+            ),
+            json.dumps({"code": solution_for_task(task)}),
+        ],
+    )
+
+    run_model_repair_rollout(task=task, provider=provider, max_repairs=1)
+
+    repair_prompt = provider.prompts[1]
+    assert "Do not return the previous code unchanged" in repair_prompt
+    assert "If an expected numeric output is all digits but the actual output contains a decimal point" in repair_prompt
+    assert 'ITEM-PRICE: PIC 9(4)V99 has implied scale 2; parse raw digits with Decimal(int(slice)) / Decimal("100").' in repair_prompt
+    assert "OUT-TOTAL: PIC 9(7)V99 is 9 fixed-width digits with implied scale 2; format scaled integer digits, not a decimal string." in repair_prompt
 
 
 def test_invoice_repair_rollout_has_step_budget_for_diff_and_final_submission():

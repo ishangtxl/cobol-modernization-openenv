@@ -70,12 +70,18 @@ Evaluate the trained checkpoint:
 
 ```bash
 LOCAL_MODEL_PATH=legacy_cobol_env/outputs/training/sft-qwen-coder-7b \
+LOCAL_DO_SAMPLE=1 \
+LOCAL_TEMPERATURE=0.2 \
+LOCAL_TOP_P=0.9 \
 PYTHONPATH=. python -m legacy_cobol_env.eval.run_model_rollouts \
   --provider local-transformers \
   --task-id invoice_occurs_001 \
   --max-repairs 2 \
   --output legacy_cobol_env/outputs/evals/local_sft_invoice_rollout.json
 ```
+
+Sampling is optional, but it can help repair turns avoid repeating the same failed
+draft under greedy decoding.
 
 Success criterion:
 

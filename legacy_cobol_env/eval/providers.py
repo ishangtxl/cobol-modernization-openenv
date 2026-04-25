@@ -103,6 +103,9 @@ class LocalTransformersProvider:
     name: str = "local-transformers"
     max_new_tokens: int = 1800
     load_in_4bit: bool = True
+    do_sample: bool = False
+    temperature: float = 0.2
+    top_p: float = 0.95
     _model: object | None = None
     _tokenizer: object | None = None
 
@@ -111,11 +114,17 @@ class LocalTransformersProvider:
         prompt_text = self._format_prompt(tokenizer, prompt)
         inputs = tokenizer(prompt_text, return_tensors="pt")
         inputs = inputs.to(model.device) if hasattr(inputs, "to") else inputs
+        generation_kwargs = {
+            "max_new_tokens": self.max_new_tokens,
+            "pad_token_id": tokenizer.eos_token_id,
+            "do_sample": self.do_sample,
+        }
+        if self.do_sample:
+            generation_kwargs["temperature"] = self.temperature
+            generation_kwargs["top_p"] = self.top_p
         output_ids = model.generate(
             **inputs,
-            max_new_tokens=self.max_new_tokens,
-            do_sample=False,
-            pad_token_id=tokenizer.eos_token_id,
+            **generation_kwargs,
         )
         prompt_length = inputs["input_ids"].shape[-1]
         generated = output_ids[0][prompt_length:]
@@ -228,6 +237,9 @@ def create_provider(kind: str, env: Mapping[str, str]) -> TextProvider:
             base_model_path=env.get("LOCAL_BASE_MODEL_PATH"),
             max_new_tokens=int(env.get("LOCAL_MAX_NEW_TOKENS", "1800")),
             load_in_4bit=env.get("LOCAL_LOAD_IN_4BIT", "1").lower() not in {"0", "false", "no"},
+            do_sample=env.get("LOCAL_DO_SAMPLE", "0").lower() in {"1", "true", "yes"},
+            temperature=float(env.get("LOCAL_TEMPERATURE", "0.2")),
+            top_p=float(env.get("LOCAL_TOP_P", "0.95")),
         )
 
     raise ValueError(f"unknown provider: {kind}")
