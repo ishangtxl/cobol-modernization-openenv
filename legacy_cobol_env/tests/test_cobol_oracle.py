@@ -30,8 +30,8 @@ def test_invoice_oracle_cases_cover_visible_hidden_and_fresh_records():
     cases = invoice_oracle_cases()
     case_ids = {case.case_id for case in cases}
 
-    assert len(cases) == 13
-    assert {"visible_1", "hidden_4", "fresh_20260429_5"} <= case_ids
+    assert len(cases) == 19
+    assert {"visible_1", "hidden_6", "fresh_20260429_9"} <= case_ids
     assert all(len(case.input_record) == 44 for case in cases)
     assert all(len(case.expected_output) == 18 for case in cases)
 

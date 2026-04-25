@@ -110,6 +110,12 @@ def test_task_bank_has_six_distinct_families_with_fresh_tests():
         assert task.metadata["output_width"] == task.metadata["output_layout"][-1]["end"]
 
 
+def test_task_bank_has_hardened_hidden_and_fresh_coverage():
+    for task in all_tasks():
+        assert len(task.hidden_tests) >= 4
+        assert len(generate_fresh_tests(task)) >= 10
+
+
 def test_reset_can_select_each_family_and_parse_its_copybook_layout():
     for task in all_tasks():
         env = LegacyCobolEnvironment()
