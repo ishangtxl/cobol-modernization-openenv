@@ -32,7 +32,7 @@ except ImportError:
     from server.task_bank import copybook_layout_for, generate_fresh_tests, load_task
 
 
-MAX_STEPS = 16
+MAX_STEPS = 20
 
 
 class LegacyCobolEnvironment(MCPEnvironment):

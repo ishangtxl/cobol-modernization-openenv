@@ -88,6 +88,7 @@ def test_invoice_rollout_prompt_includes_output_contract():
     assert "Allowed imports: decimal, datetime, math, re, typing." in prompt
     assert "PIC fields with V use an implied decimal point" in prompt
     assert "fixed-width numeric outputs are digits only" in prompt
+    assert "OUT-FLAG is H when INVOICE-TOTAL >= 1000.00, otherwise L" in prompt
 
 
 def test_provider_factory_requires_azure_environment():
@@ -150,3 +151,33 @@ def test_invoice_repair_rollout_has_step_budget_for_diff_and_final_submission():
     step_names = [step["tool_name"] for step in trajectory["steps"]]
     assert "inspect_diff" in step_names
     assert step_names[-1] == "submit_final"
+
+
+def test_invoice_repair_rollout_has_step_budget_for_two_repairs_and_final_submission():
+    task = load_task(task_id="invoice_occurs_001")
+    provider = SequenceResponseProvider(
+        name="invoice-two-repairs",
+        responses=[
+            json.dumps(
+                {
+                    "code": "def migrate(input_record: str) -> str:\n"
+                    "    total = Decimal('0.00')\n"
+                    "    return input_record[0:6] + '00000000000L'\n"
+                }
+            ),
+            json.dumps(
+                {
+                    "code": "from decimal import Decimal\n\n"
+                    "def migrate(input_record: str) -> str:\n"
+                    "    return input_record[0:6] + '000000.0000H'\n"
+                }
+            ),
+            json.dumps({"code": solution_for_task(task)}),
+        ],
+    )
+
+    trajectory = run_model_repair_rollout(task=task, provider=provider, max_repairs=2)
+
+    assert trajectory["final"]["public_score"] == 1.0
+    assert len(trajectory["model_turns"]) == 3
+    assert [step["tool_name"] for step in trajectory["steps"]][-1] == "submit_final"

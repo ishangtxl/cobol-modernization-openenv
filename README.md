@@ -35,7 +35,7 @@ Run the live baseline with an OpenAI-compatible endpoint:
 API_BASE_URL="https://..." \
 MODEL_NAME="..." \
 HF_TOKEN="..." \
-python inference.py --max-repairs 1 --output /tmp/openenvr2-live-result.json
+python inference.py --max-repairs 2 --output /tmp/openenvr2-live-result.json
 ```
 
 `inference.py` emits strict `[START]`, `[STEP]`, and `[END]` JSON records and runs all six task families by default. Use `--task-id invoice_occurs_001` to isolate one task.

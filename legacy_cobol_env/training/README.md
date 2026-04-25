@@ -73,7 +73,7 @@ LOCAL_MODEL_PATH=legacy_cobol_env/outputs/training/sft-qwen-coder-7b \
 PYTHONPATH=. python -m legacy_cobol_env.eval.run_model_rollouts \
   --provider local-transformers \
   --task-id invoice_occurs_001 \
-  --max-repairs 1 \
+  --max-repairs 2 \
   --output legacy_cobol_env/outputs/evals/local_sft_invoice_rollout.json
 ```
 

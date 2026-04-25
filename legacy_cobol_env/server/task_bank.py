@@ -738,15 +738,20 @@ def invoice_task() -> TaskInstance:
                 "Only the first ITEM-COUNT entries contribute to the total.",
                 "Each line's TAX-CODE maps through TAXRATE: S=0.0725, R=0.0250, L=0.1000, and other codes are zero-rated.",
                 "Tax is rounded half up per line from LINE-AMOUNT * TAX-PERCENT, then added to the line before totaling.",
+                "OUT-FLAG is H when INVOICE-TOTAL >= 1000.00, otherwise L.",
             ],
             "hard",
             20260429,
             ["OUT-TOTAL", "OUT-ITEM-COUNT"],
-            {"OUT-TOTAL": "sum line totals as cents and zero-pad to 9 digits"},
+            {
+                "OUT-TOTAL": "sum line totals as cents and zero-pad to 9 digits",
+                "OUT-FLAG": "H when INVOICE-TOTAL >= 1000.00, otherwise L",
+            },
             [
                 "LINE-ITEM OCCURS 4 TIMES with a 9-byte stride.",
                 "Only the first ITEM-COUNT entries contribute to the total.",
                 "Tax codes are resolved through the separate TAXRATE program; handle all code branches found there.",
+                "OUT-FLAG is H when INVOICE-TOTAL >= 1000.00, otherwise L.",
                 "Keep the total, item count, and high/low flag in the fixed-width output layout.",
             ],
             {
