@@ -1,0 +1,1595 @@
+{
+  "provider": "azure-openai",
+  "task_count": 6,
+  "mean_public_score": 0.305,
+  "accepted_count": 1,
+  "trajectories": [
+    {
+      "policy": "azure-openai",
+      "task_id": "payroll_net_pay_001",
+      "family_id": "decimal_copybook_payroll",
+      "ticket": {
+        "task_id": "payroll_net_pay_001",
+        "family_id": "decimal_copybook_payroll",
+        "domain": "payroll",
+        "ticket": "Migrate PAYROLL.cbl while preserving copybook offsets, implied decimals, signed deductions, bonus condition names, and fixed-width ACH output.",
+        "available_files": [
+          "PAYROLL.cbl"
+        ],
+        "available_copybooks": [
+          "EMPLOYEE_PAY.cpy"
+        ],
+        "expected_callable": "migrate(input_record: str) -> str",
+        "visible_tests": 3,
+        "hidden_tests": 5,
+        "input_width": 42,
+        "output_width": 28,
+        "max_steps": 12,
+        "allowed_tools": [
+          "read_cobol_file",
+          "read_copybook",
+          "parse_copybook_layout",
+          "inspect_business_rules",
+          "write_python_solution",
+          "run_visible_tests",
+          "inspect_diff",
+          "submit_final"
+        ]
+      },
+      "model_turns": [
+        {
+          "provider": "azure-openai",
+          "prompt": "You are migrating a legacy COBOL routine into Python.\n\nReturn only JSON in this shape: {\"code\": \"...python source...\"}.\n\nThe Python source must define migrate(input_record: str) -> str.\n\nTicket:\n{\n  \"task_id\": \"payroll_net_pay_001\",\n  \"family_id\": \"decimal_copybook_payroll\",\n  \"domain\": \"payroll\",\n  \"ticket\": \"Migrate PAYROLL.cbl while preserving copybook offsets, implied decimals, signed deductions, bonus condition names, and fixed-width ACH output.\",\n  \"available_files\": [\n    \"PAYROLL.cbl\"\n  ],\n  \"available_copybooks\": [\n    \"EMPLOYEE_PAY.cpy\"\n  ],\n  \"expected_callable\": \"migrate(input_record: str) -> str\",\n  \"visible_tests\": 3,\n  \"hidden_tests\": 5,\n  \"input_width\": 42,\n  \"output_width\": 28,\n  \"max_steps\": 12,\n  \"allowed_tools\": [\n    \"read_cobol_file\",\n    \"read_copybook\",\n    \"parse_copybook_layout\",\n    \"inspect_business_rules\",\n    \"write_python_solution\",\n    \"run_visible_tests\",\n    \"inspect_diff\",\n    \"submit_final\"\n  ]\n}\n\nCOBOL files:\n{\n  \"PAYROLL.cbl\": \"       IDENTIFICATION DIVISION.\\n       PROGRAM-ID. PAYROLLNET.\\n       DATA DIVISION.\\n       WORKING-STORAGE SECTION.\\n       COPY EMPLOYEE_PAY.\\n       01 TAX-AMOUNT                 PIC 9(7)V99.\\n       01 NET-AMOUNT                 PIC 9(7)V99.\\n       01 PAY-CATEGORY               PIC X.\\n       PROCEDURE DIVISION.\\n           COMPUTE TAX-AMOUNT ROUNDED = GROSS-PAY * TAX-RATE\\n           COMPUTE NET-AMOUNT = GROSS-PAY - TAX-AMOUNT - DEDUCTIONS\\n           IF BONUS-ELIGIBLE ADD 50.00 TO NET-AMOUNT END-IF\\n           IF NET-AMOUNT < 0 MOVE 0 TO NET-AMOUNT END-IF\\n           EVALUATE TRUE\\n             WHEN NET-AMOUNT >= 5000.00 MOVE 'H' TO PAY-CATEGORY\\n             WHEN NET-AMOUNT >= 2500.00 MOVE 'M' TO PAY-CATEGORY\\n             WHEN OTHER MOVE 'L' TO PAY-CATEGORY\\n           END-EVALUATE\\n           GOBACK.\\n\"\n}\n\nCopybooks:\n{\n  \"EMPLOYEE_PAY.cpy\": \"       01  EMPLOYEE-PAY-RECORD.\\n           05 EMP-ID                 PIC X(6).\\n           05 EMP-NAME               PIC X(12).\\n           05 GROSS-PAY              PIC 9(7)V99.\\n           05 TAX-RATE               PIC 9V999.\\n           05 DEDUCTIONS             PIC S9(5)V99 SIGN LEADING SEPARATE.\\n           05 BONUS-FLAG             PIC X(1).\\n              88 BONUS-ELIGIBLE      VALUE 'Y'.\\n              88 NO-BONUS            VALUE 'N'.\\n           05 FILLER                 PIC X(2).\\n\"\n}\n\nParsed layouts:\n{\n  \"EMPLOYEE_PAY.cpy\": {\n    \"ok\": true,\n    \"filename\": \"EMPLOYEE_PAY.cpy\",\n    \"record_name\": \"EMPLOYEE-PAY-RECORD\",\n    \"total_width\": 42,\n    \"fields\": [\n      {\n        \"name\": \"EMP-ID\",\n        \"start\": 0,\n        \"end\": 6,\n        \"length\": 6,\n        \"pic\": \"X(6)\",\n        \"python_type\": \"str\"\n      },\n      {\n        \"name\": \"EMP-NAME\",\n        \"start\": 6,\n        \"end\": 18,\n        \"length\": 12,\n        \"pic\": \"X(12)\",\n        \"python_type\": \"str\"\n      },\n      {\n        \"name\": \"GROSS-PAY\",\n        \"start\": 18,\n        \"end\": 27,\n        \"length\": 9,\n        \"pic\": \"9(7)V99\",\n        \"python_type\": \"Decimal\",\n        \"scale\": 2\n      },\n      {\n        \"name\": \"TAX-RATE\",\n        \"start\": 27,\n        \"end\": 31,\n        \"length\": 4,\n        \"pic\": \"9V999\",\n        \"python_type\": \"Decimal\",\n        \"scale\": 3\n      },\n      {\n        \"name\": \"DEDUCTIONS\",\n        \"start\": 31,\n        \"end\": 39,\n        \"length\": 8,\n        \"pic\": \"S9(5)V99 SIGN LEADING SEPARATE\",\n        \"python_type\": \"Decimal\",\n        \"scale\": 2\n      },\n      {\n        \"name\": \"BONUS-FLAG\",\n        \"start\": 39,\n        \"end\": 40,\n        \"length\": 1,\n        \"pic\": \"X(1)\",\n        \"python_type\": \"str\",\n        \"level_88\": {\n          \"BONUS-ELIGIBLE\": \"Y\",\n          \"NO-BONUS\": \"N\"\n        }\n      },\n      {\n        \"name\": \"FILLER\",\n        \"start\": 40,\n        \"end\": 42,\n        \"length\": 2,\n        \"pic\": \"X(2)\",\n        \"python_type\": \"str\"\n      }\n    ]\n  }\n}\n\nBusiness rules:\n[\n  \"Tax is rounded half up to cents after GROSS-PAY * TAX-RATE.\",\n  \"NET-AMOUNT = GROSS-PAY - TAX-AMOUNT - DEDUCTIONS.\",\n  \"BONUS-ELIGIBLE adds 50.00; negative net pay floors to zero.\",\n  \"Output net pay is a 9-digit zero-padded cents field.\"\n]",
+          "response": "{\"code\":\"from decimal import Decimal, ROUND_HALF_UP\\n\\ndef migrate(input_record: str) -> str:\\n    rec = (input_record or \\\"\\\")\\n    if len(rec) < 42:\\n        rec = rec.ljust(42)\\n    else:\\n        rec = rec[:42]\\n\\n    gross_str = rec[18:27]\\n    tax_rate_str = rec[27:31]\\n    deductions_str = rec[31:39]\\n    bonus_flag = rec[39:40]\\n\\n    gross = Decimal(gross_str) / Decimal('100')\\n    tax_rate = Decimal(tax_rate_str) / Decimal('1000')\\n    deductions = Decimal(deductions_str) / Decimal('100')\\n\\n    tax_amount = (gross * tax_rate).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)\\n    net_amount = gross - tax_amount - deductions\\n\\n    if bonus_flag == 'Y':\\n        net_amount += Decimal('50.00')\\n\\n    if net_amount < 0:\\n        net_amount = Decimal('0.00')\\n\\n    cents = int((net_amount * 100).quantize(Decimal('1'), rounding=ROUND_HALF_UP))\\n    return f\\\"{cents:09d}\\\"\\n\"}",
+          "code_chars": 850
+        }
+      ],
+      "visible": {
+        "passed": 0,
+        "total": 3,
+        "pass_rate": 0.0,
+        "failures": [
+          {
+            "case_id": "visible_1",
+            "input_summary": "ordinary bonus-eligible employee",
+            "expected_summary": "OUT-EMP-ID=E00001, OUT-EMP-NAME=ALICE       , OUT-NET-PAY=000093272, OUT-PAY-CATEGORY=L",
+            "actual_summary": "length 9 output: '000093272'",
+            "error": null
+          },
+          {
+            "case_id": "visible_2",
+            "input_summary": "negative adjustment and no bonus",
+            "expected_summary": "OUT-EMP-ID=E00002, OUT-EMP-NAME=BOB         , OUT-NET-PAY=000076750, OUT-PAY-CATEGORY=L",
+            "actual_summary": "length 9 output: '000076750'",
+            "error": null
+          },
+          {
+            "case_id": "visible_3",
+            "input_summary": "low net pay floors at zero",
+            "expected_summary": "OUT-EMP-ID=E00003, OUT-EMP-NAME=CHANDRA     , OUT-NET-PAY=000000000, OUT-PAY-CATEGORY=L",
+            "actual_summary": "length 9 output: '000000000'",
+            "error": null
+          }
+        ]
+      },
+      "final": {
+        "public_score": 0.15,
+        "accepted": false,
+        "components": {
+          "hidden_correctness": 0.0,
+          "fresh_correctness": 0.0,
+          "interface_contract": 1.0,
+          "type_and_layout_fidelity": 0.0,
+          "anti_hardcoding": 0.0,
+          "safety": 1.0
+        },
+        "hidden_passed": 0,
+        "hidden_total": 5,
+        "fresh_passed": 0,
+        "fresh_total": 6
+      },
+      "steps": [
+        {
+          "tool_name": "read_cobol_file",
+          "arguments": {
+            "filename": "PAYROLL.cbl"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "PAYROLL.cbl",
+            "content": "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. PAYROLLNET.\n       DATA DIVISION.\n       WORKING-STORAGE SECTION.\n       COPY EMPLOYEE_PAY.\n       01 TAX-AMOUNT                 PIC 9(7)V99.\n       01 NET-AMOUNT                 PIC 9(7)V99.\n       01 PAY-CATEGORY               PIC X.\n       PROCEDURE DIVISION.\n           COMPUTE TAX-AMOUNT ROUNDED = GROSS-PAY * TAX-RATE\n           COMPUTE NET-AMOUNT = GROSS-PAY - TAX-AMOUNT - DEDUCTIONS\n           IF BONUS-ELIGIBLE ADD 50.00 TO NET-AMOUNT END-IF\n           IF NET-AMOUNT < 0 MOVE 0 TO NET-AMOUNT END-IF\n           EVALUATE TRUE\n             WHEN NET-AMOUNT >= 5000.00 MOVE 'H' TO PAY-CATEGORY\n             WHEN NET-AMOUNT >= 2500.00 MOVE 'M' TO PAY-CATEGORY\n             WHEN OTHER MOVE 'L' TO PAY-CATEGORY\n           END-EVALUATE\n           GOBACK.\n",
+            "truncated": false
+          }
+        },
+        {
+          "tool_name": "read_copybook",
+          "arguments": {
+            "filename": "EMPLOYEE_PAY.cpy"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "EMPLOYEE_PAY.cpy",
+            "content": "       01  EMPLOYEE-PAY-RECORD.\n           05 EMP-ID                 PIC X(6).\n           05 EMP-NAME               PIC X(12).\n           05 GROSS-PAY              PIC 9(7)V99.\n           05 TAX-RATE               PIC 9V999.\n           05 DEDUCTIONS             PIC S9(5)V99 SIGN LEADING SEPARATE.\n           05 BONUS-FLAG             PIC X(1).\n              88 BONUS-ELIGIBLE      VALUE 'Y'.\n              88 NO-BONUS            VALUE 'N'.\n           05 FILLER                 PIC X(2).\n"
+          }
+        },
+        {
+          "tool_name": "parse_copybook_layout",
+          "arguments": {
+            "filename": "EMPLOYEE_PAY.cpy"
+          },
+          "reward": 0.03,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "EMPLOYEE_PAY.cpy",
+            "record_name": "EMPLOYEE-PAY-RECORD",
+            "total_width": 42,
+            "fields": [
+              {
+                "name": "EMP-ID",
+                "start": 0,
+                "end": 6,
+                "length": 6,
+                "pic": "X(6)",
+                "python_type": "str"
+              },
+              {
+                "name": "EMP-NAME",
+                "start": 6,
+                "end": 18,
+                "length": 12,
+                "pic": "X(12)",
+                "python_type": "str"
+              },
+              {
+                "name": "GROSS-PAY",
+                "start": 18,
+                "end": 27,
+                "length": 9,
+                "pic": "9(7)V99",
+                "python_type": "Decimal",
+                "scale": 2
+              },
+              {
+                "name": "TAX-RATE",
+                "start": 27,
+                "end": 31,
+                "length": 4,
+                "pic": "9V999",
+                "python_type": "Decimal",
+                "scale": 3
+              },
+              {
+                "name": "DEDUCTIONS",
+                "start": 31,
+                "end": 39,
+                "length": 8,
+                "pic": "S9(5)V99 SIGN LEADING SEPARATE",
+                "python_type": "Decimal",
+                "scale": 2
+              },
+              {
+                "name": "BONUS-FLAG",
+                "start": 39,
+                "end": 40,
+                "length": 1,
+                "pic": "X(1)",
+                "python_type": "str",
+                "level_88": {
+                  "BONUS-ELIGIBLE": "Y",
+                  "NO-BONUS": "N"
+                }
+              },
+              {
+                "name": "FILLER",
+                "start": 40,
+                "end": 42,
+                "length": 2,
+                "pic": "X(2)",
+                "python_type": "str"
+              }
+            ]
+          }
+        },
+        {
+          "tool_name": "inspect_business_rules",
+          "arguments": {},
+          "reward": 0.01,
+          "done": false,
+          "result": {
+            "ok": true,
+            "rules": [
+              "Tax is rounded half up to cents after GROSS-PAY * TAX-RATE.",
+              "NET-AMOUNT = GROSS-PAY - TAX-AMOUNT - DEDUCTIONS.",
+              "BONUS-ELIGIBLE adds 50.00; negative net pay floors to zero.",
+              "Output net pay is a 9-digit zero-padded cents field."
+            ]
+          }
+        },
+        {
+          "tool_name": "write_python_solution",
+          "arguments": {
+            "code_chars": 850
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "draft_id": 1,
+            "syntax_ok": true,
+            "safety_ok": true,
+            "error": null
+          }
+        },
+        {
+          "tool_name": "run_visible_tests",
+          "arguments": {
+            "draft_id": 1
+          },
+          "reward": 0.0,
+          "done": false,
+          "result": {
+            "ok": true,
+            "draft_id": 1,
+            "passed": 0,
+            "total": 3,
+            "pass_rate": 0.0,
+            "syntax_ok": true,
+            "safety_ok": true,
+            "interface_ok": true,
+            "timed_out": false,
+            "error": null,
+            "failures": [
+              {
+                "case_id": "visible_1",
+                "input_summary": "ordinary bonus-eligible employee",
+                "expected_summary": "OUT-EMP-ID=E00001, OUT-EMP-NAME=ALICE       , OUT-NET-PAY=000093272, OUT-PAY-CATEGORY=L",
+                "actual_summary": "length 9 output: '000093272'",
+                "error": null
+              },
+              {
+                "case_id": "visible_2",
+                "input_summary": "negative adjustment and no bonus",
+                "expected_summary": "OUT-EMP-ID=E00002, OUT-EMP-NAME=BOB         , OUT-NET-PAY=000076750, OUT-PAY-CATEGORY=L",
+                "actual_summary": "length 9 output: '000076750'",
+                "error": null
+              },
+              {
+                "case_id": "visible_3",
+                "input_summary": "low net pay floors at zero",
+                "expected_summary": "OUT-EMP-ID=E00003, OUT-EMP-NAME=CHANDRA     , OUT-NET-PAY=000000000, OUT-PAY-CATEGORY=L",
+                "actual_summary": "length 9 output: '000000000'",
+                "error": null
+              }
+            ]
+          }
+        },
+        {
+          "tool_name": "submit_final",
+          "arguments": {
+            "draft_id": 1
+          },
+          "reward": 0.15,
+          "done": true,
+          "result": {
+            "ok": true,
+            "accepted": false,
+            "episode_done": true,
+            "public_score": 0.15,
+            "components": {
+              "hidden_correctness": 0.0,
+              "fresh_correctness": 0.0,
+              "interface_contract": 1.0,
+              "type_and_layout_fidelity": 0.0,
+              "anti_hardcoding": 0.0,
+              "safety": 1.0
+            },
+            "hidden_passed": 0,
+            "hidden_total": 5,
+            "fresh_passed": 0,
+            "fresh_total": 6,
+            "notes": "Hidden and fresh case details are not revealed to the agent."
+          }
+        }
+      ]
+    },
+    {
+      "policy": "azure-openai",
+      "task_id": "customer_format_001",
+      "family_id": "fixed_width_customer",
+      "ticket": {
+        "task_id": "customer_format_001",
+        "family_id": "fixed_width_customer",
+        "domain": "customer master data",
+        "ticket": "Migrate CUSTFMT.cbl. Preserve fixed-width name formatting, status mapping, ZIP leading zeros, and zero-padded balance output.",
+        "available_files": [
+          "CUSTFMT.cbl"
+        ],
+        "available_copybooks": [
+          "CUSTOMER_REC.cpy"
+        ],
+        "expected_callable": "migrate(input_record: str) -> str",
+        "visible_tests": 3,
+        "hidden_tests": 3,
+        "input_width": 40,
+        "output_width": 41,
+        "max_steps": 12,
+        "allowed_tools": [
+          "read_cobol_file",
+          "read_copybook",
+          "parse_copybook_layout",
+          "inspect_business_rules",
+          "write_python_solution",
+          "run_visible_tests",
+          "inspect_diff",
+          "submit_final"
+        ]
+      },
+      "model_turns": [
+        {
+          "provider": "azure-openai",
+          "prompt": "You are migrating a legacy COBOL routine into Python.\n\nReturn only JSON in this shape: {\"code\": \"...python source...\"}.\n\nThe Python source must define migrate(input_record: str) -> str.\n\nTicket:\n{\n  \"task_id\": \"customer_format_001\",\n  \"family_id\": \"fixed_width_customer\",\n  \"domain\": \"customer master data\",\n  \"ticket\": \"Migrate CUSTFMT.cbl. Preserve fixed-width name formatting, status mapping, ZIP leading zeros, and zero-padded balance output.\",\n  \"available_files\": [\n    \"CUSTFMT.cbl\"\n  ],\n  \"available_copybooks\": [\n    \"CUSTOMER_REC.cpy\"\n  ],\n  \"expected_callable\": \"migrate(input_record: str) -> str\",\n  \"visible_tests\": 3,\n  \"hidden_tests\": 3,\n  \"input_width\": 40,\n  \"output_width\": 41,\n  \"max_steps\": 12,\n  \"allowed_tools\": [\n    \"read_cobol_file\",\n    \"read_copybook\",\n    \"parse_copybook_layout\",\n    \"inspect_business_rules\",\n    \"write_python_solution\",\n    \"run_visible_tests\",\n    \"inspect_diff\",\n    \"submit_final\"\n  ]\n}\n\nCOBOL files:\n{\n  \"CUSTFMT.cbl\": \"       IDENTIFICATION DIVISION.\\n       PROGRAM-ID. CUSTFMT.\\n       DATA DIVISION.\\n       WORKING-STORAGE SECTION.\\n       COPY CUSTOMER_REC.\\n       01 OUTPUT-RECORD.\\n          05 OUT-CUST-ID             PIC X(5).\\n          05 OUT-FULL-NAME           PIC X(22).\\n          05 OUT-ZIP-CODE            PIC 9(5).\\n          05 OUT-STATUS              PIC X.\\n          05 OUT-BALANCE             PIC 9(6)V99.\\n       PROCEDURE DIVISION.\\n          STRING LAST-NAME DELIMITED BY SIZE ', ' FIRST-NAME DELIMITED BY SIZE\\n             INTO OUT-FULL-NAME\\n          EVALUATE STATUS-CODE\\n             WHEN 'A' MOVE 'O' TO OUT-STATUS\\n             WHEN 'S' MOVE 'S' TO OUT-STATUS\\n             WHEN OTHER MOVE 'C' TO OUT-STATUS\\n          END-EVALUATE\\n          GOBACK.\\n\"\n}\n\nCopybooks:\n{\n  \"CUSTOMER_REC.cpy\": \"       01  CUSTOMER-RECORD.\\n           05 CUST-ID                PIC X(5).\\n           05 FIRST-NAME             PIC X(10).\\n           05 LAST-NAME              PIC X(12).\\n           05 ZIP-CODE               PIC 9(5).\\n           05 STATUS-CODE            PIC X.\\n              88 ACTIVE-CUSTOMER     VALUE 'A'.\\n              88 SUSPENDED-CUSTOMER  VALUE 'S'.\\n              88 CLOSED-CUSTOMER     VALUE 'C'.\\n           05 BALANCE-DUE            PIC 9(5)V99.\\n\"\n}\n\nParsed layouts:\n{\n  \"CUSTOMER_REC.cpy\": {\n    \"ok\": true,\n    \"filename\": \"CUSTOMER_REC.cpy\",\n    \"record_name\": \"CUSTOMER-RECORD\",\n    \"total_width\": 40,\n    \"fields\": [\n      {\n        \"name\": \"CUST-ID\",\n        \"start\": 0,\n        \"end\": 5,\n        \"length\": 5,\n        \"pic\": \"X(5)\",\n        \"python_type\": \"str\"\n      },\n      {\n        \"name\": \"FIRST-NAME\",\n        \"start\": 5,\n        \"end\": 15,\n        \"length\": 10,\n        \"pic\": \"X(10)\",\n        \"python_type\": \"str\"\n      },\n      {\n        \"name\": \"LAST-NAME\",\n        \"start\": 15,\n        \"end\": 27,\n        \"length\": 12,\n        \"pic\": \"X(12)\",\n        \"python_type\": \"str\"\n      },\n      {\n        \"name\": \"ZIP-CODE\",\n        \"start\": 27,\n        \"end\": 32,\n        \"length\": 5,\n        \"pic\": \"9(5)\",\n        \"python_type\": \"str\"\n      },\n      {\n        \"name\": \"STATUS-CODE\",\n        \"start\": 32,\n        \"end\": 33,\n        \"length\": 1,\n        \"pic\": \"X\",\n        \"python_type\": \"str\"\n      },\n      {\n        \"name\": \"BALANCE-DUE\",\n        \"start\": 33,\n        \"end\": 40,\n        \"length\": 7,\n        \"pic\": \"9(5)V99\",\n        \"python_type\": \"Decimal\",\n        \"scale\": 2\n      }\n    ]\n  }\n}\n\nBusiness rules:\n[\n  \"OUT-FULL-NAME is LAST-NAME, comma-space, FIRST-NAME, truncated/padded to 22.\",\n  \"A maps to O, S maps to S, anything else maps to C.\",\n  \"ZIP stays five digits and OUT-BALANCE is eight zero-padded digits.\"\n]",
+          "response": "{\"code\":\"def migrate(input_record: str) -> str:\\n    \\\"\\\"\\\"Migrate a fixed-width customer record from legacy COBOL format.\\n\\n    Input width: 40\\n    Output width: 41\\n    \\\"\\\"\\\"\\n    rec = (input_record or \\\"\\\")\\n    if len(rec) < 40:\\n        rec = rec.ljust(40)\\n    else:\\n        rec = rec[:40]\\n\\n    cust_id = rec[0:5]\\n    first_name = rec[5:15].rstrip()\\n    last_name = rec[15:27].rstrip()\\n    zip_code = rec[27:32]\\n    status_code = rec[32:33]\\n    balance_raw = rec[33:40]\\n\\n    full_name = f\\\"{last_name}, {first_name}\\\"\\n    full_name = full_name[:22].ljust(22)\\n\\n    if status_code == 'A':\\n        out_status = 'O'\\n    elif status_code == 'S':\\n        out_status = 'S'\\n    else:\\n        out_status = 'C'\\n\\n    # COBOL PIC 9(5)V99 -> 7 input digits, output requires 8 zero-padded digits.\\n    # Preserve numeric value and emit 8 digits.\\n    digits = ''.join(ch for ch in balance_raw if ch.isdigit())\\n    digits = digits.rjust(7, '0')[-7:]\\n    out_balance = digits.rjust(8, '0')\\n\\n    return f\\\"{cust_id}{full_name}{zip_code}{out_status}{out_balance}\\\"\\n\"}",
+          "code_chars": 1025
+        }
+      ],
+      "visible": {
+        "passed": 3,
+        "total": 3,
+        "pass_rate": 1.0,
+        "failures": []
+      },
+      "final": {
+        "public_score": 1.0,
+        "accepted": true,
+        "components": {
+          "hidden_correctness": 1.0,
+          "fresh_correctness": 1.0,
+          "interface_contract": 1.0,
+          "type_and_layout_fidelity": 1.0,
+          "anti_hardcoding": 1.0,
+          "safety": 1.0
+        },
+        "hidden_passed": 3,
+        "hidden_total": 3,
+        "fresh_passed": 6,
+        "fresh_total": 6
+      },
+      "steps": [
+        {
+          "tool_name": "read_cobol_file",
+          "arguments": {
+            "filename": "CUSTFMT.cbl"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "CUSTFMT.cbl",
+            "content": "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. CUSTFMT.\n       DATA DIVISION.\n       WORKING-STORAGE SECTION.\n       COPY CUSTOMER_REC.\n       01 OUTPUT-RECORD.\n          05 OUT-CUST-ID             PIC X(5).\n          05 OUT-FULL-NAME           PIC X(22).\n          05 OUT-ZIP-CODE            PIC 9(5).\n          05 OUT-STATUS              PIC X.\n          05 OUT-BALANCE             PIC 9(6)V99.\n       PROCEDURE DIVISION.\n          STRING LAST-NAME DELIMITED BY SIZE ', ' FIRST-NAME DELIMITED BY SIZE\n             INTO OUT-FULL-NAME\n          EVALUATE STATUS-CODE\n             WHEN 'A' MOVE 'O' TO OUT-STATUS\n             WHEN 'S' MOVE 'S' TO OUT-STATUS\n             WHEN OTHER MOVE 'C' TO OUT-STATUS\n          END-EVALUATE\n          GOBACK.\n",
+            "truncated": false
+          }
+        },
+        {
+          "tool_name": "read_copybook",
+          "arguments": {
+            "filename": "CUSTOMER_REC.cpy"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "CUSTOMER_REC.cpy",
+            "content": "       01  CUSTOMER-RECORD.\n           05 CUST-ID                PIC X(5).\n           05 FIRST-NAME             PIC X(10).\n           05 LAST-NAME              PIC X(12).\n           05 ZIP-CODE               PIC 9(5).\n           05 STATUS-CODE            PIC X.\n              88 ACTIVE-CUSTOMER     VALUE 'A'.\n              88 SUSPENDED-CUSTOMER  VALUE 'S'.\n              88 CLOSED-CUSTOMER     VALUE 'C'.\n           05 BALANCE-DUE            PIC 9(5)V99.\n"
+          }
+        },
+        {
+          "tool_name": "parse_copybook_layout",
+          "arguments": {
+            "filename": "CUSTOMER_REC.cpy"
+          },
+          "reward": 0.03,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "CUSTOMER_REC.cpy",
+            "record_name": "CUSTOMER-RECORD",
+            "total_width": 40,
+            "fields": [
+              {
+                "name": "CUST-ID",
+                "start": 0,
+                "end": 5,
+                "length": 5,
+                "pic": "X(5)",
+                "python_type": "str"
+              },
+              {
+                "name": "FIRST-NAME",
+                "start": 5,
+                "end": 15,
+                "length": 10,
+                "pic": "X(10)",
+                "python_type": "str"
+              },
+              {
+                "name": "LAST-NAME",
+                "start": 15,
+                "end": 27,
+                "length": 12,
+                "pic": "X(12)",
+                "python_type": "str"
+              },
+              {
+                "name": "ZIP-CODE",
+                "start": 27,
+                "end": 32,
+                "length": 5,
+                "pic": "9(5)",
+                "python_type": "str"
+              },
+              {
+                "name": "STATUS-CODE",
+                "start": 32,
+                "end": 33,
+                "length": 1,
+                "pic": "X",
+                "python_type": "str"
+              },
+              {
+                "name": "BALANCE-DUE",
+                "start": 33,
+                "end": 40,
+                "length": 7,
+                "pic": "9(5)V99",
+                "python_type": "Decimal",
+                "scale": 2
+              }
+            ]
+          }
+        },
+        {
+          "tool_name": "inspect_business_rules",
+          "arguments": {},
+          "reward": 0.01,
+          "done": false,
+          "result": {
+            "ok": true,
+            "rules": [
+              "OUT-FULL-NAME is LAST-NAME, comma-space, FIRST-NAME, truncated/padded to 22.",
+              "A maps to O, S maps to S, anything else maps to C.",
+              "ZIP stays five digits and OUT-BALANCE is eight zero-padded digits."
+            ]
+          }
+        },
+        {
+          "tool_name": "write_python_solution",
+          "arguments": {
+            "code_chars": 1025
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "draft_id": 1,
+            "syntax_ok": true,
+            "safety_ok": true,
+            "error": null
+          }
+        },
+        {
+          "tool_name": "run_visible_tests",
+          "arguments": {
+            "draft_id": 1
+          },
+          "reward": 0.05,
+          "done": false,
+          "result": {
+            "ok": true,
+            "draft_id": 1,
+            "passed": 3,
+            "total": 3,
+            "pass_rate": 1.0,
+            "syntax_ok": true,
+            "safety_ok": true,
+            "interface_ok": true,
+            "timed_out": false,
+            "error": null,
+            "failures": []
+          }
+        },
+        {
+          "tool_name": "submit_final",
+          "arguments": {
+            "draft_id": 1
+          },
+          "reward": 1.0,
+          "done": true,
+          "result": {
+            "ok": true,
+            "accepted": true,
+            "episode_done": true,
+            "public_score": 1.0,
+            "components": {
+              "hidden_correctness": 1.0,
+              "fresh_correctness": 1.0,
+              "interface_contract": 1.0,
+              "type_and_layout_fidelity": 1.0,
+              "anti_hardcoding": 1.0,
+              "safety": 1.0
+            },
+            "hidden_passed": 3,
+            "hidden_total": 3,
+            "fresh_passed": 6,
+            "fresh_total": 6,
+            "notes": "Hidden and fresh case details are not revealed to the agent."
+          }
+        }
+      ]
+    },
+    {
+      "policy": "azure-openai",
+      "task_id": "claims_eligibility_001",
+      "family_id": "claims_eligibility_branching",
+      "ticket": {
+        "task_id": "claims_eligibility_001",
+        "family_id": "claims_eligibility_branching",
+        "domain": "insurance claims",
+        "ticket": "Migrate CLMELIG.cbl. Preserve EVALUATE TRUE branch precedence for claim approvals, denials, and manual review reasons.",
+        "available_files": [
+          "CLMELIG.cbl"
+        ],
+        "available_copybooks": [
+          "CLAIM_REC.cpy"
+        ],
+        "expected_callable": "migrate(input_record: str) -> str",
+        "visible_tests": 3,
+        "hidden_tests": 3,
+        "input_width": 21,
+        "output_width": 9,
+        "max_steps": 12,
+        "allowed_tools": [
+          "read_cobol_file",
+          "read_copybook",
+          "parse_copybook_layout",
+          "inspect_business_rules",
+          "write_python_solution",
+          "run_visible_tests",
+          "inspect_diff",
+          "submit_final"
+        ]
+      },
+      "model_turns": [
+        {
+          "provider": "azure-openai",
+          "prompt": "You are migrating a legacy COBOL routine into Python.\n\nReturn only JSON in this shape: {\"code\": \"...python source...\"}.\n\nThe Python source must define migrate(input_record: str) -> str.\n\nTicket:\n{\n  \"task_id\": \"claims_eligibility_001\",\n  \"family_id\": \"claims_eligibility_branching\",\n  \"domain\": \"insurance claims\",\n  \"ticket\": \"Migrate CLMELIG.cbl. Preserve EVALUATE TRUE branch precedence for claim approvals, denials, and manual review reasons.\",\n  \"available_files\": [\n    \"CLMELIG.cbl\"\n  ],\n  \"available_copybooks\": [\n    \"CLAIM_REC.cpy\"\n  ],\n  \"expected_callable\": \"migrate(input_record: str) -> str\",\n  \"visible_tests\": 3,\n  \"hidden_tests\": 3,\n  \"input_width\": 21,\n  \"output_width\": 9,\n  \"max_steps\": 12,\n  \"allowed_tools\": [\n    \"read_cobol_file\",\n    \"read_copybook\",\n    \"parse_copybook_layout\",\n    \"inspect_business_rules\",\n    \"write_python_solution\",\n    \"run_visible_tests\",\n    \"inspect_diff\",\n    \"submit_final\"\n  ]\n}\n\nCOBOL files:\n{\n  \"CLMELIG.cbl\": \"       IDENTIFICATION DIVISION.\\n       PROGRAM-ID. CLMELIG.\\n       DATA DIVISION.\\n       WORKING-STORAGE SECTION.\\n       COPY CLAIM_REC.\\n       PROCEDURE DIVISION.\\n          EVALUATE TRUE\\n             WHEN AGE < 18 MOVE 'D' TO DECISION MOVE 'A1' TO REASON\\n             WHEN PLAN-CODE = 'B' AND CLAIM-AMOUNT > 1500.00 MOVE 'R' TO DECISION MOVE 'B2' TO REASON\\n             WHEN PREAUTH-FLAG = 'N' AND CLAIM-AMOUNT > 1000.00 MOVE 'D' TO DECISION MOVE 'P1' TO REASON\\n             WHEN SERVICE-DAYS > 030 MOVE 'R' TO DECISION MOVE 'L1' TO REASON\\n             WHEN OTHER MOVE 'A' TO DECISION MOVE 'OK' TO REASON\\n          END-EVALUATE\\n          GOBACK.\\n\"\n}\n\nCopybooks:\n{\n  \"CLAIM_REC.cpy\": \"       01  CLAIM-RECORD.\\n           05 CLAIM-ID               PIC X(6).\\n           05 AGE                    PIC 9(3).\\n           05 PLAN-CODE              PIC X.\\n           05 SERVICE-DAYS           PIC 9(3).\\n           05 PREAUTH-FLAG           PIC X.\\n           05 CLAIM-AMOUNT           PIC 9(5)V99.\\n\"\n}\n\nParsed layouts:\n{\n  \"CLAIM_REC.cpy\": {\n    \"ok\": true,\n    \"filename\": \"CLAIM_REC.cpy\",\n    \"record_name\": \"CLAIM-RECORD\",\n    \"total_width\": 21,\n    \"fields\": [\n      {\n        \"name\": \"CLAIM-ID\",\n        \"start\": 0,\n        \"end\": 6,\n        \"length\": 6,\n        \"pic\": \"X(6)\",\n        \"python_type\": \"str\"\n      },\n      {\n        \"name\": \"AGE\",\n        \"start\": 6,\n        \"end\": 9,\n        \"length\": 3,\n        \"pic\": \"9(3)\",\n        \"python_type\": \"int\"\n      },\n      {\n        \"name\": \"PLAN-CODE\",\n        \"start\": 9,\n        \"end\": 10,\n        \"length\": 1,\n        \"pic\": \"X\",\n        \"python_type\": \"str\"\n      },\n      {\n        \"name\": \"SERVICE-DAYS\",\n        \"start\": 10,\n        \"end\": 13,\n        \"length\": 3,\n        \"pic\": \"9(3)\",\n        \"python_type\": \"int\"\n      },\n      {\n        \"name\": \"PREAUTH-FLAG\",\n        \"start\": 13,\n        \"end\": 14,\n        \"length\": 1,\n        \"pic\": \"X\",\n        \"python_type\": \"str\"\n      },\n      {\n        \"name\": \"CLAIM-AMOUNT\",\n        \"start\": 14,\n        \"end\": 21,\n        \"length\": 7,\n        \"pic\": \"9(5)V99\",\n        \"python_type\": \"Decimal\",\n        \"scale\": 2\n      }\n    ]\n  }\n}\n\nBusiness rules:\n[\n  \"Branch order matters: age, plan-B large claim, missing preauth, long service, default approve.\",\n  \"Amounts are implied cents; 100000 means 1000.00.\"\n]",
+          "response": "{\"code\":\"from decimal import Decimal\\n\\ndef migrate(input_record: str) -> str:\\n    rec = (input_record or \\\"\\\").ljust(21)[:21]\\n\\n    def to_int(s: str) -> int:\\n        s = s.strip()\\n        return int(s) if s else 0\\n\\n    def to_amount(s: str) -> Decimal:\\n        s = s.strip()\\n        if not s:\\n            return Decimal('0.00')\\n        return Decimal(int(s)) / Decimal('100')\\n\\n    age = to_int(rec[6:9])\\n    plan_code = rec[9:10]\\n    service_days = to_int(rec[10:13])\\n    preauth_flag = rec[13:14]\\n    claim_amount = to_amount(rec[14:21])\\n\\n    decision = 'A'\\n    reason = 'OK'\\n\\n    if age < 18:\\n        decision = 'D'\\n        reason = 'A1'\\n    elif plan_code == 'B' and claim_amount > Decimal('1500.00'):\\n        decision = 'R'\\n        reason = 'B2'\\n    elif preauth_flag == 'N' and claim_amount > Decimal('1000.00'):\\n        decision = 'D'\\n        reason = 'P1'\\n    elif service_days > 30:\\n        decision = 'R'\\n        reason = 'L1'\\n\\n    return f\\\"{decision}{reason}\\\"\\n\"}",
+          "code_chars": 958
+        }
+      ],
+      "visible": {
+        "passed": 0,
+        "total": 3,
+        "pass_rate": 0.0,
+        "failures": [
+          {
+            "case_id": "visible_1",
+            "input_summary": "ordinary approved claim",
+            "expected_summary": "OUT-CLAIM-ID=CLM001, OUT-DECISION=A, OUT-REASON=OK",
+            "actual_summary": "length 3 output: 'AOK'",
+            "error": null
+          },
+          {
+            "case_id": "visible_2",
+            "input_summary": "missing preauth denial",
+            "expected_summary": "OUT-CLAIM-ID=CLM002, OUT-DECISION=D, OUT-REASON=P1",
+            "actual_summary": "length 3 output: 'DP1'",
+            "error": null
+          },
+          {
+            "case_id": "visible_3",
+            "input_summary": "long service review",
+            "expected_summary": "OUT-CLAIM-ID=CLM003, OUT-DECISION=R, OUT-REASON=L1",
+            "actual_summary": "length 3 output: 'RL1'",
+            "error": null
+          }
+        ]
+      },
+      "final": {
+        "public_score": 0.15,
+        "accepted": false,
+        "components": {
+          "hidden_correctness": 0.0,
+          "fresh_correctness": 0.0,
+          "interface_contract": 1.0,
+          "type_and_layout_fidelity": 0.0,
+          "anti_hardcoding": 0.0,
+          "safety": 1.0
+        },
+        "hidden_passed": 0,
+        "hidden_total": 3,
+        "fresh_passed": 0,
+        "fresh_total": 6
+      },
+      "steps": [
+        {
+          "tool_name": "read_cobol_file",
+          "arguments": {
+            "filename": "CLMELIG.cbl"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "CLMELIG.cbl",
+            "content": "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. CLMELIG.\n       DATA DIVISION.\n       WORKING-STORAGE SECTION.\n       COPY CLAIM_REC.\n       PROCEDURE DIVISION.\n          EVALUATE TRUE\n             WHEN AGE < 18 MOVE 'D' TO DECISION MOVE 'A1' TO REASON\n             WHEN PLAN-CODE = 'B' AND CLAIM-AMOUNT > 1500.00 MOVE 'R' TO DECISION MOVE 'B2' TO REASON\n             WHEN PREAUTH-FLAG = 'N' AND CLAIM-AMOUNT > 1000.00 MOVE 'D' TO DECISION MOVE 'P1' TO REASON\n             WHEN SERVICE-DAYS > 030 MOVE 'R' TO DECISION MOVE 'L1' TO REASON\n             WHEN OTHER MOVE 'A' TO DECISION MOVE 'OK' TO REASON\n          END-EVALUATE\n          GOBACK.\n",
+            "truncated": false
+          }
+        },
+        {
+          "tool_name": "read_copybook",
+          "arguments": {
+            "filename": "CLAIM_REC.cpy"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "CLAIM_REC.cpy",
+            "content": "       01  CLAIM-RECORD.\n           05 CLAIM-ID               PIC X(6).\n           05 AGE                    PIC 9(3).\n           05 PLAN-CODE              PIC X.\n           05 SERVICE-DAYS           PIC 9(3).\n           05 PREAUTH-FLAG           PIC X.\n           05 CLAIM-AMOUNT           PIC 9(5)V99.\n"
+          }
+        },
+        {
+          "tool_name": "parse_copybook_layout",
+          "arguments": {
+            "filename": "CLAIM_REC.cpy"
+          },
+          "reward": 0.03,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "CLAIM_REC.cpy",
+            "record_name": "CLAIM-RECORD",
+            "total_width": 21,
+            "fields": [
+              {
+                "name": "CLAIM-ID",
+                "start": 0,
+                "end": 6,
+                "length": 6,
+                "pic": "X(6)",
+                "python_type": "str"
+              },
+              {
+                "name": "AGE",
+                "start": 6,
+                "end": 9,
+                "length": 3,
+                "pic": "9(3)",
+                "python_type": "int"
+              },
+              {
+                "name": "PLAN-CODE",
+                "start": 9,
+                "end": 10,
+                "length": 1,
+                "pic": "X",
+                "python_type": "str"
+              },
+              {
+                "name": "SERVICE-DAYS",
+                "start": 10,
+                "end": 13,
+                "length": 3,
+                "pic": "9(3)",
+                "python_type": "int"
+              },
+              {
+                "name": "PREAUTH-FLAG",
+                "start": 13,
+                "end": 14,
+                "length": 1,
+                "pic": "X",
+                "python_type": "str"
+              },
+              {
+                "name": "CLAIM-AMOUNT",
+                "start": 14,
+                "end": 21,
+                "length": 7,
+                "pic": "9(5)V99",
+                "python_type": "Decimal",
+                "scale": 2
+              }
+            ]
+          }
+        },
+        {
+          "tool_name": "inspect_business_rules",
+          "arguments": {},
+          "reward": 0.01,
+          "done": false,
+          "result": {
+            "ok": true,
+            "rules": [
+              "Branch order matters: age, plan-B large claim, missing preauth, long service, default approve.",
+              "Amounts are implied cents; 100000 means 1000.00."
+            ]
+          }
+        },
+        {
+          "tool_name": "write_python_solution",
+          "arguments": {
+            "code_chars": 958
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "draft_id": 1,
+            "syntax_ok": true,
+            "safety_ok": true,
+            "error": null
+          }
+        },
+        {
+          "tool_name": "run_visible_tests",
+          "arguments": {
+            "draft_id": 1
+          },
+          "reward": 0.0,
+          "done": false,
+          "result": {
+            "ok": true,
+            "draft_id": 1,
+            "passed": 0,
+            "total": 3,
+            "pass_rate": 0.0,
+            "syntax_ok": true,
+            "safety_ok": true,
+            "interface_ok": true,
+            "timed_out": false,
+            "error": null,
+            "failures": [
+              {
+                "case_id": "visible_1",
+                "input_summary": "ordinary approved claim",
+                "expected_summary": "OUT-CLAIM-ID=CLM001, OUT-DECISION=A, OUT-REASON=OK",
+                "actual_summary": "length 3 output: 'AOK'",
+                "error": null
+              },
+              {
+                "case_id": "visible_2",
+                "input_summary": "missing preauth denial",
+                "expected_summary": "OUT-CLAIM-ID=CLM002, OUT-DECISION=D, OUT-REASON=P1",
+                "actual_summary": "length 3 output: 'DP1'",
+                "error": null
+              },
+              {
+                "case_id": "visible_3",
+                "input_summary": "long service review",
+                "expected_summary": "OUT-CLAIM-ID=CLM003, OUT-DECISION=R, OUT-REASON=L1",
+                "actual_summary": "length 3 output: 'RL1'",
+                "error": null
+              }
+            ]
+          }
+        },
+        {
+          "tool_name": "submit_final",
+          "arguments": {
+            "draft_id": 1
+          },
+          "reward": 0.15,
+          "done": true,
+          "result": {
+            "ok": true,
+            "accepted": false,
+            "episode_done": true,
+            "public_score": 0.15,
+            "components": {
+              "hidden_correctness": 0.0,
+              "fresh_correctness": 0.0,
+              "interface_contract": 1.0,
+              "type_and_layout_fidelity": 0.0,
+              "anti_hardcoding": 0.0,
+              "safety": 1.0
+            },
+            "hidden_passed": 0,
+            "hidden_total": 3,
+            "fresh_passed": 0,
+            "fresh_total": 6,
+            "notes": "Hidden and fresh case details are not revealed to the agent."
+          }
+        }
+      ]
+    },
+    {
+      "policy": "azure-openai",
+      "task_id": "account_status_001",
+      "family_id": "account_status_level88",
+      "ticket": {
+        "task_id": "account_status_001",
+        "family_id": "account_status_level88",
+        "domain": "banking",
+        "ticket": "Migrate ACCTSTAT.cbl. Correctly interpret level-88 status names and preserve branch precedence for account servicing actions.",
+        "available_files": [
+          "ACCTSTAT.cbl"
+        ],
+        "available_copybooks": [
+          "ACCOUNT_REC.cpy"
+        ],
+        "expected_callable": "migrate(input_record: str) -> str",
+        "visible_tests": 3,
+        "hidden_tests": 3,
+        "input_width": 19,
+        "output_width": 9,
+        "max_steps": 12,
+        "allowed_tools": [
+          "read_cobol_file",
+          "read_copybook",
+          "parse_copybook_layout",
+          "inspect_business_rules",
+          "write_python_solution",
+          "run_visible_tests",
+          "inspect_diff",
+          "submit_final"
+        ]
+      },
+      "model_turns": [
+        {
+          "provider": "azure-openai",
+          "prompt": "You are migrating a legacy COBOL routine into Python.\n\nReturn only JSON in this shape: {\"code\": \"...python source...\"}.\n\nThe Python source must define migrate(input_record: str) -> str.\n\nTicket:\n{\n  \"task_id\": \"account_status_001\",\n  \"family_id\": \"account_status_level88\",\n  \"domain\": \"banking\",\n  \"ticket\": \"Migrate ACCTSTAT.cbl. Correctly interpret level-88 status names and preserve branch precedence for account servicing actions.\",\n  \"available_files\": [\n    \"ACCTSTAT.cbl\"\n  ],\n  \"available_copybooks\": [\n    \"ACCOUNT_REC.cpy\"\n  ],\n  \"expected_callable\": \"migrate(input_record: str) -> str\",\n  \"visible_tests\": 3,\n  \"hidden_tests\": 3,\n  \"input_width\": 19,\n  \"output_width\": 9,\n  \"max_steps\": 12,\n  \"allowed_tools\": [\n    \"read_cobol_file\",\n    \"read_copybook\",\n    \"parse_copybook_layout\",\n    \"inspect_business_rules\",\n    \"write_python_solution\",\n    \"run_visible_tests\",\n    \"inspect_diff\",\n    \"submit_final\"\n  ]\n}\n\nCOBOL files:\n{\n  \"ACCTSTAT.cbl\": \"       IDENTIFICATION DIVISION.\\n       PROGRAM-ID. ACCTSTAT.\\n       DATA DIVISION.\\n       WORKING-STORAGE SECTION.\\n       COPY ACCOUNT_REC.\\n       PROCEDURE DIVISION.\\n          EVALUATE TRUE\\n             WHEN CLOSED-ACCT MOVE 'CL' TO CATEGORY MOVE 'N' TO ACTION\\n             WHEN FROZEN-ACCT MOVE 'FR' TO CATEGORY MOVE 'H' TO ACTION\\n             WHEN DAYS-PAST-DUE >= 090 MOVE 'DL' TO CATEGORY MOVE 'C' TO ACTION\\n             WHEN BALANCE < 0 MOVE 'OD' TO CATEGORY MOVE 'R' TO ACTION\\n             WHEN OTHER MOVE 'OK' TO CATEGORY MOVE 'N' TO ACTION\\n          END-EVALUATE\\n          GOBACK.\\n\"\n}\n\nCopybooks:\n{\n  \"ACCOUNT_REC.cpy\": \"       01  ACCOUNT-RECORD.\\n           05 ACCOUNT-ID             PIC X(6).\\n           05 STATUS-CODE            PIC X.\\n              88 ACTIVE-ACCT         VALUE 'A'.\\n              88 FROZEN-ACCT         VALUE 'F'.\\n              88 CLOSED-ACCT         VALUE 'C'.\\n           05 BALANCE                PIC S9(6)V99 SIGN LEADING SEPARATE.\\n           05 DAYS-PAST-DUE          PIC 9(3).\\n\"\n}\n\nParsed layouts:\n{\n  \"ACCOUNT_REC.cpy\": {\n    \"ok\": true,\n    \"filename\": \"ACCOUNT_REC.cpy\",\n    \"record_name\": \"ACCOUNT-RECORD\",\n    \"total_width\": 19,\n    \"fields\": [\n      {\n        \"name\": \"ACCOUNT-ID\",\n        \"start\": 0,\n        \"end\": 6,\n        \"length\": 6,\n        \"pic\": \"X(6)\",\n        \"python_type\": \"str\"\n      },\n      {\n        \"name\": \"STATUS-CODE\",\n        \"start\": 6,\n        \"end\": 7,\n        \"length\": 1,\n        \"pic\": \"X\",\n        \"python_type\": \"str\",\n        \"level_88\": {\n          \"ACTIVE-ACCT\": \"A\",\n          \"FROZEN-ACCT\": \"F\",\n          \"CLOSED-ACCT\": \"C\"\n        }\n      },\n      {\n        \"name\": \"BALANCE\",\n        \"start\": 7,\n        \"end\": 16,\n        \"length\": 9,\n        \"pic\": \"S9(6)V99 SIGN LEADING SEPARATE\",\n        \"python_type\": \"Decimal\",\n        \"scale\": 2\n      },\n      {\n        \"name\": \"DAYS-PAST-DUE\",\n        \"start\": 16,\n        \"end\": 19,\n        \"length\": 3,\n        \"pic\": \"9(3)\",\n        \"python_type\": \"int\"\n      }\n    ]\n  }\n}\n\nBusiness rules:\n[\n  \"CLOSED-ACCT and FROZEN-ACCT are level-88 names over STATUS-CODE.\",\n  \"Closed and frozen branches precede delinquency and overdrawn checks.\"\n]",
+          "response": "{\"code\":\"from decimal import Decimal, InvalidOperation\\n\\ndef migrate(input_record: str) -> str:\\n    rec = (input_record or \\\"\\\")\\n    rec = rec.ljust(19)[:19]\\n\\n    status_code = rec[6:7]\\n    balance_raw = rec[7:16].strip()\\n    days_raw = rec[16:19].strip()\\n\\n    try:\\n        balance = Decimal(balance_raw) if balance_raw else Decimal('0')\\n    except InvalidOperation:\\n        balance = Decimal('0')\\n\\n    try:\\n        days_past_due = int(days_raw) if days_raw else 0\\n    except ValueError:\\n        days_past_due = 0\\n\\n    category = 'OK'\\n    action = 'N'\\n\\n    # Preserve COBOL EVALUATE TRUE branch precedence.\\n    if status_code == 'C':  # CLOSED-ACCT\\n        category = 'CL'\\n        action = 'N'\\n    elif status_code == 'F':  # FROZEN-ACCT\\n        category = 'FR'\\n        action = 'H'\\n    elif days_past_due >= 90:\\n        category = 'DL'\\n        action = 'C'\\n    elif balance < 0:\\n        category = 'OD'\\n        action = 'R'\\n\\n    return f\\\"{category}{action}\\\"\\n\"}",
+          "code_chars": 947
+        }
+      ],
+      "visible": {
+        "passed": 0,
+        "total": 3,
+        "pass_rate": 0.0,
+        "failures": [
+          {
+            "case_id": "visible_1",
+            "input_summary": "active account in good standing",
+            "expected_summary": "OUT-ACCOUNT-ID=A00001, OUT-CATEGORY=OK, OUT-ACTION=N",
+            "actual_summary": "length 3 output: 'OKN'",
+            "error": null
+          },
+          {
+            "case_id": "visible_2",
+            "input_summary": "overdrawn active account",
+            "expected_summary": "OUT-ACCOUNT-ID=A00002, OUT-CATEGORY=OD, OUT-ACTION=R",
+            "actual_summary": "length 3 output: 'ODR'",
+            "error": null
+          },
+          {
+            "case_id": "visible_3",
+            "input_summary": "frozen account",
+            "expected_summary": "OUT-ACCOUNT-ID=A00003, OUT-CATEGORY=FR, OUT-ACTION=H",
+            "actual_summary": "length 3 output: 'FRH'",
+            "error": null
+          }
+        ]
+      },
+      "final": {
+        "public_score": 0.15,
+        "accepted": false,
+        "components": {
+          "hidden_correctness": 0.0,
+          "fresh_correctness": 0.0,
+          "interface_contract": 1.0,
+          "type_and_layout_fidelity": 0.0,
+          "anti_hardcoding": 0.0,
+          "safety": 1.0
+        },
+        "hidden_passed": 0,
+        "hidden_total": 3,
+        "fresh_passed": 0,
+        "fresh_total": 6
+      },
+      "steps": [
+        {
+          "tool_name": "read_cobol_file",
+          "arguments": {
+            "filename": "ACCTSTAT.cbl"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "ACCTSTAT.cbl",
+            "content": "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. ACCTSTAT.\n       DATA DIVISION.\n       WORKING-STORAGE SECTION.\n       COPY ACCOUNT_REC.\n       PROCEDURE DIVISION.\n          EVALUATE TRUE\n             WHEN CLOSED-ACCT MOVE 'CL' TO CATEGORY MOVE 'N' TO ACTION\n             WHEN FROZEN-ACCT MOVE 'FR' TO CATEGORY MOVE 'H' TO ACTION\n             WHEN DAYS-PAST-DUE >= 090 MOVE 'DL' TO CATEGORY MOVE 'C' TO ACTION\n             WHEN BALANCE < 0 MOVE 'OD' TO CATEGORY MOVE 'R' TO ACTION\n             WHEN OTHER MOVE 'OK' TO CATEGORY MOVE 'N' TO ACTION\n          END-EVALUATE\n          GOBACK.\n",
+            "truncated": false
+          }
+        },
+        {
+          "tool_name": "read_copybook",
+          "arguments": {
+            "filename": "ACCOUNT_REC.cpy"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "ACCOUNT_REC.cpy",
+            "content": "       01  ACCOUNT-RECORD.\n           05 ACCOUNT-ID             PIC X(6).\n           05 STATUS-CODE            PIC X.\n              88 ACTIVE-ACCT         VALUE 'A'.\n              88 FROZEN-ACCT         VALUE 'F'.\n              88 CLOSED-ACCT         VALUE 'C'.\n           05 BALANCE                PIC S9(6)V99 SIGN LEADING SEPARATE.\n           05 DAYS-PAST-DUE          PIC 9(3).\n"
+          }
+        },
+        {
+          "tool_name": "parse_copybook_layout",
+          "arguments": {
+            "filename": "ACCOUNT_REC.cpy"
+          },
+          "reward": 0.03,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "ACCOUNT_REC.cpy",
+            "record_name": "ACCOUNT-RECORD",
+            "total_width": 19,
+            "fields": [
+              {
+                "name": "ACCOUNT-ID",
+                "start": 0,
+                "end": 6,
+                "length": 6,
+                "pic": "X(6)",
+                "python_type": "str"
+              },
+              {
+                "name": "STATUS-CODE",
+                "start": 6,
+                "end": 7,
+                "length": 1,
+                "pic": "X",
+                "python_type": "str",
+                "level_88": {
+                  "ACTIVE-ACCT": "A",
+                  "FROZEN-ACCT": "F",
+                  "CLOSED-ACCT": "C"
+                }
+              },
+              {
+                "name": "BALANCE",
+                "start": 7,
+                "end": 16,
+                "length": 9,
+                "pic": "S9(6)V99 SIGN LEADING SEPARATE",
+                "python_type": "Decimal",
+                "scale": 2
+              },
+              {
+                "name": "DAYS-PAST-DUE",
+                "start": 16,
+                "end": 19,
+                "length": 3,
+                "pic": "9(3)",
+                "python_type": "int"
+              }
+            ]
+          }
+        },
+        {
+          "tool_name": "inspect_business_rules",
+          "arguments": {},
+          "reward": 0.01,
+          "done": false,
+          "result": {
+            "ok": true,
+            "rules": [
+              "CLOSED-ACCT and FROZEN-ACCT are level-88 names over STATUS-CODE.",
+              "Closed and frozen branches precede delinquency and overdrawn checks."
+            ]
+          }
+        },
+        {
+          "tool_name": "write_python_solution",
+          "arguments": {
+            "code_chars": 947
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "draft_id": 1,
+            "syntax_ok": true,
+            "safety_ok": true,
+            "error": null
+          }
+        },
+        {
+          "tool_name": "run_visible_tests",
+          "arguments": {
+            "draft_id": 1
+          },
+          "reward": 0.0,
+          "done": false,
+          "result": {
+            "ok": true,
+            "draft_id": 1,
+            "passed": 0,
+            "total": 3,
+            "pass_rate": 0.0,
+            "syntax_ok": true,
+            "safety_ok": true,
+            "interface_ok": true,
+            "timed_out": false,
+            "error": null,
+            "failures": [
+              {
+                "case_id": "visible_1",
+                "input_summary": "active account in good standing",
+                "expected_summary": "OUT-ACCOUNT-ID=A00001, OUT-CATEGORY=OK, OUT-ACTION=N",
+                "actual_summary": "length 3 output: 'OKN'",
+                "error": null
+              },
+              {
+                "case_id": "visible_2",
+                "input_summary": "overdrawn active account",
+                "expected_summary": "OUT-ACCOUNT-ID=A00002, OUT-CATEGORY=OD, OUT-ACTION=R",
+                "actual_summary": "length 3 output: 'ODR'",
+                "error": null
+              },
+              {
+                "case_id": "visible_3",
+                "input_summary": "frozen account",
+                "expected_summary": "OUT-ACCOUNT-ID=A00003, OUT-CATEGORY=FR, OUT-ACTION=H",
+                "actual_summary": "length 3 output: 'FRH'",
+                "error": null
+              }
+            ]
+          }
+        },
+        {
+          "tool_name": "submit_final",
+          "arguments": {
+            "draft_id": 1
+          },
+          "reward": 0.15,
+          "done": true,
+          "result": {
+            "ok": true,
+            "accepted": false,
+            "episode_done": true,
+            "public_score": 0.15,
+            "components": {
+              "hidden_correctness": 0.0,
+              "fresh_correctness": 0.0,
+              "interface_contract": 1.0,
+              "type_and_layout_fidelity": 0.0,
+              "anti_hardcoding": 0.0,
+              "safety": 1.0
+            },
+            "hidden_passed": 0,
+            "hidden_total": 3,
+            "fresh_passed": 0,
+            "fresh_total": 6,
+            "notes": "Hidden and fresh case details are not revealed to the agent."
+          }
+        }
+      ]
+    },
+    {
+      "policy": "azure-openai",
+      "task_id": "invoice_occurs_001",
+      "family_id": "invoice_occurs_totals",
+      "ticket": {
+        "task_id": "invoice_occurs_001",
+        "family_id": "invoice_occurs_totals",
+        "domain": "invoicing",
+        "ticket": "Migrate INVTOTAL.cbl. Preserve OCCURS stride parsing, item-count bounds, per-line tax rounding, and fixed-width total output.",
+        "available_files": [
+          "INVTOTAL.cbl"
+        ],
+        "available_copybooks": [
+          "INVOICE_REC.cpy"
+        ],
+        "expected_callable": "migrate(input_record: str) -> str",
+        "visible_tests": 3,
+        "hidden_tests": 3,
+        "input_width": 44,
+        "output_width": 18,
+        "max_steps": 12,
+        "allowed_tools": [
+          "read_cobol_file",
+          "read_copybook",
+          "parse_copybook_layout",
+          "inspect_business_rules",
+          "write_python_solution",
+          "run_visible_tests",
+          "inspect_diff",
+          "submit_final"
+        ]
+      },
+      "model_turns": [
+        {
+          "provider": "azure-openai",
+          "prompt": "You are migrating a legacy COBOL routine into Python.\n\nReturn only JSON in this shape: {\"code\": \"...python source...\"}.\n\nThe Python source must define migrate(input_record: str) -> str.\n\nTicket:\n{\n  \"task_id\": \"invoice_occurs_001\",\n  \"family_id\": \"invoice_occurs_totals\",\n  \"domain\": \"invoicing\",\n  \"ticket\": \"Migrate INVTOTAL.cbl. Preserve OCCURS stride parsing, item-count bounds, per-line tax rounding, and fixed-width total output.\",\n  \"available_files\": [\n    \"INVTOTAL.cbl\"\n  ],\n  \"available_copybooks\": [\n    \"INVOICE_REC.cpy\"\n  ],\n  \"expected_callable\": \"migrate(input_record: str) -> str\",\n  \"visible_tests\": 3,\n  \"hidden_tests\": 3,\n  \"input_width\": 44,\n  \"output_width\": 18,\n  \"max_steps\": 12,\n  \"allowed_tools\": [\n    \"read_cobol_file\",\n    \"read_copybook\",\n    \"parse_copybook_layout\",\n    \"inspect_business_rules\",\n    \"write_python_solution\",\n    \"run_visible_tests\",\n    \"inspect_diff\",\n    \"submit_final\"\n  ]\n}\n\nCOBOL files:\n{\n  \"INVTOTAL.cbl\": \"       IDENTIFICATION DIVISION.\\n       PROGRAM-ID. INVTOTAL.\\n       DATA DIVISION.\\n       WORKING-STORAGE SECTION.\\n       COPY INVOICE_REC.\\n       PROCEDURE DIVISION.\\n          PERFORM VARYING IDX FROM 1 BY 1 UNTIL IDX > ITEM-COUNT\\n             COMPUTE LINE-AMOUNT ROUNDED = ITEM-QTY(IDX) * ITEM-PRICE(IDX)\\n             IF TAXABLE-FLAG(IDX) = 'Y'\\n                COMPUTE LINE-AMOUNT ROUNDED = LINE-AMOUNT * 1.075\\n             END-IF\\n             ADD LINE-AMOUNT TO INVOICE-TOTAL\\n          END-PERFORM\\n          GOBACK.\\n\"\n}\n\nCopybooks:\n{\n  \"INVOICE_REC.cpy\": \"       01  INVOICE-RECORD.\\n           05 INVOICE-ID             PIC X(6).\\n           05 ITEM-COUNT             PIC 9(2).\\n           05 LINE-ITEM OCCURS 4 TIMES.\\n              10 ITEM-QTY            PIC 9(2).\\n              10 ITEM-PRICE          PIC 9(4)V99.\\n              10 TAXABLE-FLAG        PIC X.\\n\"\n}\n\nParsed layouts:\n{\n  \"INVOICE_REC.cpy\": {\n    \"ok\": true,\n    \"filename\": \"INVOICE_REC.cpy\",\n    \"record_name\": \"INVOICE-RECORD\",\n    \"total_width\": 44,\n    \"fields\": [\n      {\n        \"name\": \"INVOICE-ID\",\n        \"start\": 0,\n        \"end\": 6,\n        \"length\": 6,\n        \"pic\": \"X(6)\",\n        \"python_type\": \"str\"\n      },\n      {\n        \"name\": \"ITEM-COUNT\",\n        \"start\": 6,\n        \"end\": 8,\n        \"length\": 2,\n        \"pic\": \"9(2)\",\n        \"python_type\": \"int\"\n      },\n      {\n        \"name\": \"LINE-ITEMS\",\n        \"start\": 8,\n        \"end\": 44,\n        \"length\": 36,\n        \"pic\": \"OCCURS 4 TIMES\",\n        \"python_type\": \"group\",\n        \"occurs\": 4,\n        \"stride\": 9\n      }\n    ]\n  }\n}\n\nBusiness rules:\n[\n  \"LINE-ITEM OCCURS 4 TIMES with a 9-byte stride.\",\n  \"Only the first ITEM-COUNT entries contribute to the total.\",\n  \"Taxable line amounts multiply by 1.075 and round half up per line.\"\n]",
+          "response": "{\"code\":\"from decimal import Decimal, ROUND_HALF_UP\\n\\ndef migrate(input_record: str) -> str:\\n    record = (input_record or \\\"\\\")[:44].ljust(44)\\n\\n    def parse_int(s: str) -> int:\\n        s = s.strip()\\n        return int(s) if s else 0\\n\\n    def parse_money(s: str) -> Decimal:\\n        s = s.strip()\\n        if not s:\\n            return Decimal('0')\\n        return Decimal(s) / Decimal('100')\\n\\n    item_count = parse_int(record[6:8])\\n    if item_count < 0:\\n        item_count = 0\\n    if item_count > 4:\\n        item_count = 4\\n\\n    total = Decimal('0')\\n    base = 8\\n    stride = 9\\n\\n    for idx in range(item_count):\\n        off = base + idx * stride\\n        qty = parse_int(record[off:off + 2])\\n        price = parse_money(record[off + 2:off + 8])\\n        taxable = record[off + 8:off + 9]\\n\\n        line_amount = (Decimal(qty) * price).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)\\n        if taxable == 'Y':\\n            line_amount = (line_amount * Decimal('1.075')).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)\\n        total += line_amount\\n\\n    cents = int(total.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP) * 100)\\n    return f\\\"{cents:018d}\\\"\\n\"}",
+          "code_chars": 1143
+        }
+      ],
+      "visible": {
+        "passed": 0,
+        "total": 3,
+        "pass_rate": 0.0,
+        "failures": [
+          {
+            "case_id": "visible_1",
+            "input_summary": "two taxable and non-taxable lines",
+            "expected_summary": "OUT-INVOICE-ID=I00001, OUT-TOTAL=000036542, OUT-ITEM-COUNT=02, OUT-FLAG=L",
+            "actual_summary": "OUT-INVOICE-ID=000000, OUT-TOTAL=000000036, OUT-ITEM-COUNT=54, OUT-FLAG=2",
+            "error": null
+          },
+          {
+            "case_id": "visible_2",
+            "input_summary": "zero item invoice",
+            "expected_summary": "OUT-INVOICE-ID=I00002, OUT-TOTAL=000000000, OUT-ITEM-COUNT=00, OUT-FLAG=L",
+            "actual_summary": "OUT-INVOICE-ID=000000, OUT-TOTAL=000000000, OUT-ITEM-COUNT=00, OUT-FLAG=0",
+            "error": null
+          },
+          {
+            "case_id": "visible_3",
+            "input_summary": "four item high invoice",
+            "expected_summary": "OUT-INVOICE-ID=I00003, OUT-TOTAL=000351035, OUT-ITEM-COUNT=04, OUT-FLAG=H",
+            "actual_summary": "OUT-INVOICE-ID=000000, OUT-TOTAL=000000351, OUT-ITEM-COUNT=03, OUT-FLAG=5",
+            "error": null
+          }
+        ]
+      },
+      "final": {
+        "public_score": 0.23,
+        "accepted": false,
+        "components": {
+          "hidden_correctness": 0.0,
+          "fresh_correctness": 0.0,
+          "interface_contract": 1.0,
+          "type_and_layout_fidelity": 1.0,
+          "anti_hardcoding": 0.0,
+          "safety": 1.0
+        },
+        "hidden_passed": 0,
+        "hidden_total": 3,
+        "fresh_passed": 0,
+        "fresh_total": 6
+      },
+      "steps": [
+        {
+          "tool_name": "read_cobol_file",
+          "arguments": {
+            "filename": "INVTOTAL.cbl"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "INVTOTAL.cbl",
+            "content": "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. INVTOTAL.\n       DATA DIVISION.\n       WORKING-STORAGE SECTION.\n       COPY INVOICE_REC.\n       PROCEDURE DIVISION.\n          PERFORM VARYING IDX FROM 1 BY 1 UNTIL IDX > ITEM-COUNT\n             COMPUTE LINE-AMOUNT ROUNDED = ITEM-QTY(IDX) * ITEM-PRICE(IDX)\n             IF TAXABLE-FLAG(IDX) = 'Y'\n                COMPUTE LINE-AMOUNT ROUNDED = LINE-AMOUNT * 1.075\n             END-IF\n             ADD LINE-AMOUNT TO INVOICE-TOTAL\n          END-PERFORM\n          GOBACK.\n",
+            "truncated": false
+          }
+        },
+        {
+          "tool_name": "read_copybook",
+          "arguments": {
+            "filename": "INVOICE_REC.cpy"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "INVOICE_REC.cpy",
+            "content": "       01  INVOICE-RECORD.\n           05 INVOICE-ID             PIC X(6).\n           05 ITEM-COUNT             PIC 9(2).\n           05 LINE-ITEM OCCURS 4 TIMES.\n              10 ITEM-QTY            PIC 9(2).\n              10 ITEM-PRICE          PIC 9(4)V99.\n              10 TAXABLE-FLAG        PIC X.\n"
+          }
+        },
+        {
+          "tool_name": "parse_copybook_layout",
+          "arguments": {
+            "filename": "INVOICE_REC.cpy"
+          },
+          "reward": 0.03,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "INVOICE_REC.cpy",
+            "record_name": "INVOICE-RECORD",
+            "total_width": 44,
+            "fields": [
+              {
+                "name": "INVOICE-ID",
+                "start": 0,
+                "end": 6,
+                "length": 6,
+                "pic": "X(6)",
+                "python_type": "str"
+              },
+              {
+                "name": "ITEM-COUNT",
+                "start": 6,
+                "end": 8,
+                "length": 2,
+                "pic": "9(2)",
+                "python_type": "int"
+              },
+              {
+                "name": "LINE-ITEMS",
+                "start": 8,
+                "end": 44,
+                "length": 36,
+                "pic": "OCCURS 4 TIMES",
+                "python_type": "group",
+                "occurs": 4,
+                "stride": 9
+              }
+            ]
+          }
+        },
+        {
+          "tool_name": "inspect_business_rules",
+          "arguments": {},
+          "reward": 0.01,
+          "done": false,
+          "result": {
+            "ok": true,
+            "rules": [
+              "LINE-ITEM OCCURS 4 TIMES with a 9-byte stride.",
+              "Only the first ITEM-COUNT entries contribute to the total.",
+              "Taxable line amounts multiply by 1.075 and round half up per line."
+            ]
+          }
+        },
+        {
+          "tool_name": "write_python_solution",
+          "arguments": {
+            "code_chars": 1143
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "draft_id": 1,
+            "syntax_ok": true,
+            "safety_ok": true,
+            "error": null
+          }
+        },
+        {
+          "tool_name": "run_visible_tests",
+          "arguments": {
+            "draft_id": 1
+          },
+          "reward": 0.0,
+          "done": false,
+          "result": {
+            "ok": true,
+            "draft_id": 1,
+            "passed": 0,
+            "total": 3,
+            "pass_rate": 0.0,
+            "syntax_ok": true,
+            "safety_ok": true,
+            "interface_ok": true,
+            "timed_out": false,
+            "error": null,
+            "failures": [
+              {
+                "case_id": "visible_1",
+                "input_summary": "two taxable and non-taxable lines",
+                "expected_summary": "OUT-INVOICE-ID=I00001, OUT-TOTAL=000036542, OUT-ITEM-COUNT=02, OUT-FLAG=L",
+                "actual_summary": "OUT-INVOICE-ID=000000, OUT-TOTAL=000000036, OUT-ITEM-COUNT=54, OUT-FLAG=2",
+                "error": null
+              },
+              {
+                "case_id": "visible_2",
+                "input_summary": "zero item invoice",
+                "expected_summary": "OUT-INVOICE-ID=I00002, OUT-TOTAL=000000000, OUT-ITEM-COUNT=00, OUT-FLAG=L",
+                "actual_summary": "OUT-INVOICE-ID=000000, OUT-TOTAL=000000000, OUT-ITEM-COUNT=00, OUT-FLAG=0",
+                "error": null
+              },
+              {
+                "case_id": "visible_3",
+                "input_summary": "four item high invoice",
+                "expected_summary": "OUT-INVOICE-ID=I00003, OUT-TOTAL=000351035, OUT-ITEM-COUNT=04, OUT-FLAG=H",
+                "actual_summary": "OUT-INVOICE-ID=000000, OUT-TOTAL=000000351, OUT-ITEM-COUNT=03, OUT-FLAG=5",
+                "error": null
+              }
+            ]
+          }
+        },
+        {
+          "tool_name": "submit_final",
+          "arguments": {
+            "draft_id": 1
+          },
+          "reward": 0.23,
+          "done": true,
+          "result": {
+            "ok": true,
+            "accepted": false,
+            "episode_done": true,
+            "public_score": 0.23,
+            "components": {
+              "hidden_correctness": 0.0,
+              "fresh_correctness": 0.0,
+              "interface_contract": 1.0,
+              "type_and_layout_fidelity": 1.0,
+              "anti_hardcoding": 0.0,
+              "safety": 1.0
+            },
+            "hidden_passed": 0,
+            "hidden_total": 3,
+            "fresh_passed": 0,
+            "fresh_total": 6,
+            "notes": "Hidden and fresh case details are not revealed to the agent."
+          }
+        }
+      ]
+    },
+    {
+      "policy": "azure-openai",
+      "task_id": "date_normalization_001",
+      "family_id": "date_normalization",
+      "ticket": {
+        "task_id": "date_normalization_001",
+        "family_id": "date_normalization",
+        "domain": "claims and billing",
+        "ticket": "Migrate DATENORM.cbl. Preserve legacy YYMMDD century-window rules and invalid-date behavior instead of blindly using modern date parsing.",
+        "available_files": [
+          "DATENORM.cbl"
+        ],
+        "available_copybooks": [
+          "POLICY_DATE.cpy"
+        ],
+        "expected_callable": "migrate(input_record: str) -> str",
+        "visible_tests": 3,
+        "hidden_tests": 3,
+        "input_width": 21,
+        "output_width": 22,
+        "max_steps": 12,
+        "allowed_tools": [
+          "read_cobol_file",
+          "read_copybook",
+          "parse_copybook_layout",
+          "inspect_business_rules",
+          "write_python_solution",
+          "run_visible_tests",
+          "inspect_diff",
+          "submit_final"
+        ]
+      },
+      "model_turns": [
+        {
+          "provider": "azure-openai",
+          "prompt": "You are migrating a legacy COBOL routine into Python.\n\nReturn only JSON in this shape: {\"code\": \"...python source...\"}.\n\nThe Python source must define migrate(input_record: str) -> str.\n\nTicket:\n{\n  \"task_id\": \"date_normalization_001\",\n  \"family_id\": \"date_normalization\",\n  \"domain\": \"claims and billing\",\n  \"ticket\": \"Migrate DATENORM.cbl. Preserve legacy YYMMDD century-window rules and invalid-date behavior instead of blindly using modern date parsing.\",\n  \"available_files\": [\n    \"DATENORM.cbl\"\n  ],\n  \"available_copybooks\": [\n    \"POLICY_DATE.cpy\"\n  ],\n  \"expected_callable\": \"migrate(input_record: str) -> str\",\n  \"visible_tests\": 3,\n  \"hidden_tests\": 3,\n  \"input_width\": 21,\n  \"output_width\": 22,\n  \"max_steps\": 12,\n  \"allowed_tools\": [\n    \"read_cobol_file\",\n    \"read_copybook\",\n    \"parse_copybook_layout\",\n    \"inspect_business_rules\",\n    \"write_python_solution\",\n    \"run_visible_tests\",\n    \"inspect_diff\",\n    \"submit_final\"\n  ]\n}\n\nCOBOL files:\n{\n  \"DATENORM.cbl\": \"       IDENTIFICATION DIVISION.\\n       PROGRAM-ID. DATENORM.\\n       DATA DIVISION.\\n       WORKING-STORAGE SECTION.\\n       COPY POLICY_DATE.\\n       PROCEDURE DIVISION.\\n          IF RAW-YY >= WINDOW-YEAR\\n             MOVE 19 TO OUT-CENTURY\\n          ELSE\\n             MOVE 20 TO OUT-CENTURY\\n          END-IF\\n          PERFORM VALIDATE-MONTH-DAY\\n          GOBACK.\\n\"\n}\n\nCopybooks:\n{\n  \"POLICY_DATE.cpy\": \"       01  POLICY-DATE-RECORD.\\n           05 POLICY-ID              PIC X(6).\\n           05 RAW-DATE               PIC 9(6).\\n           05 WINDOW-YEAR            PIC 9(2).\\n           05 AMOUNT                 PIC 9(5)V99.\\n\"\n}\n\nParsed layouts:\n{\n  \"POLICY_DATE.cpy\": {\n    \"ok\": true,\n    \"filename\": \"POLICY_DATE.cpy\",\n    \"record_name\": \"POLICY-DATE-RECORD\",\n    \"total_width\": 21,\n    \"fields\": [\n      {\n        \"name\": \"POLICY-ID\",\n        \"start\": 0,\n        \"end\": 6,\n        \"length\": 6,\n        \"pic\": \"X(6)\",\n        \"python_type\": \"str\"\n      },\n      {\n        \"name\": \"RAW-DATE\",\n        \"start\": 6,\n        \"end\": 12,\n        \"length\": 6,\n        \"pic\": \"9(6)\",\n        \"python_type\": \"str\"\n      },\n      {\n        \"name\": \"WINDOW-YEAR\",\n        \"start\": 12,\n        \"end\": 14,\n        \"length\": 2,\n        \"pic\": \"9(2)\",\n        \"python_type\": \"int\"\n      },\n      {\n        \"name\": \"AMOUNT\",\n        \"start\": 14,\n        \"end\": 21,\n        \"length\": 7,\n        \"pic\": \"9(5)V99\",\n        \"python_type\": \"Decimal\",\n        \"scale\": 2\n      }\n    ]\n  }\n}\n\nBusiness rules:\n[\n  \"RAW-DATE is YYMMDD.\",\n  \"If YY >= WINDOW-YEAR, century is 19; otherwise century is 20.\",\n  \"Invalid dates output 00000000 and valid flag N; amount is preserved.\"\n]",
+          "response": "{\"code\":\"def migrate(input_record: str) -> str:\\n    \\\"\\\"\\\"Migrate DATENORM legacy COBOL routine.\\n\\n    Input layout (21 chars):\\n      0-5   POLICY-ID\\n      6-11  RAW-DATE   (YYMMDD)\\n      12-13 WINDOW-YEAR\\n      14-20 AMOUNT\\n\\n    Output width: 22 chars.\\n    Legacy behavior preserved:\\n      - Century window: if YY >= WINDOW-YEAR => 19xx else 20xx\\n      - Invalid dates become 00000000 and valid flag N\\n      - Amount is preserved\\n    \\\"\\\"\\\"\\n\\n    s = input_record or \\\"\\\"\\n    s = s.ljust(21)\\n\\n    policy_id = s[0:6]\\n    raw_date = s[6:12]\\n    window_year_str = s[12:14]\\n    amount = s[14:21]\\n\\n    yy = raw_date[0:2]\\n    mm = raw_date[2:4]\\n    dd = raw_date[4:6]\\n\\n    try:\\n        window_year = int(window_year_str)\\n    except ValueError:\\n        window_year = 0\\n\\n    try:\\n        yy_int = int(yy)\\n    except ValueError:\\n        yy_int = -1\\n\\n    if yy_int >= window_year:\\n        century = \\\"19\\\"\\n    else:\\n        century = \\\"20\\\"\\n\\n    # Validate month/day with leap-year awareness after century expansion.\\n    valid = True\\n    try:\\n        month = int(mm)\\n        day = int(dd)\\n        year = int(century + yy)\\n        if not (1 <= month <= 12):\\n            valid = False\\n        else:\\n            month_lengths = [31, 29 if (year % 400 == 0 or (year % 4 == 0 and year % 100 != 0)) else 28,\\n                             31, 30, 31, 30, 31, 31, 30, 31, 30, 31]\\n            if not (1 <= day <= month_lengths[month - 1]):\\n                valid = False\\n    except ValueError:\\n        valid = False\\n\\n    if valid:\\n        out_date = century + raw_date\\n        valid_flag = \\\"Y\\\"\\n    else:\\n        out_date = \\\"00000000\\\"\\n        valid_flag = \\\"N\\\"\\n\\n    # Output width 22: 8-char date + 1-char valid flag + 6-char policy id + 7-char amount = 22\\n    return f\\\"{out_date}{valid_flag}{policy_id}{amount}\\\"\\n\"}",
+          "code_chars": 1768
+        }
+      ],
+      "visible": {
+        "passed": 0,
+        "total": 3,
+        "pass_rate": 0.0,
+        "failures": [
+          {
+            "case_id": "visible_1",
+            "input_summary": "twentieth century date by window",
+            "expected_summary": "OUT-POLICY-ID=P00001, OUT-DATE=19991231, OUT-VALID=Y, OUT-AMOUNT=0012345",
+            "actual_summary": "OUT-POLICY-ID=199912, OUT-DATE=31YP0000, OUT-VALID=1, OUT-AMOUNT=0012345",
+            "error": null
+          },
+          {
+            "case_id": "visible_2",
+            "input_summary": "twenty-first century date by window",
+            "expected_summary": "OUT-POLICY-ID=P00002, OUT-DATE=20240229, OUT-VALID=Y, OUT-AMOUNT=0000100",
+            "actual_summary": "OUT-POLICY-ID=202402, OUT-DATE=29YP0000, OUT-VALID=2, OUT-AMOUNT=0000100",
+            "error": null
+          },
+          {
+            "case_id": "visible_3",
+            "input_summary": "invalid month",
+            "expected_summary": "OUT-POLICY-ID=P00003, OUT-DATE=00000000, OUT-VALID=N, OUT-AMOUNT=0000999",
+            "actual_summary": "OUT-POLICY-ID=000000, OUT-DATE=00NP0000, OUT-VALID=3, OUT-AMOUNT=0000999",
+            "error": null
+          }
+        ]
+      },
+      "final": {
+        "public_score": 0.15,
+        "accepted": false,
+        "components": {
+          "hidden_correctness": 0.0,
+          "fresh_correctness": 0.0,
+          "interface_contract": 1.0,
+          "type_and_layout_fidelity": 0.0,
+          "anti_hardcoding": 0.0,
+          "safety": 1.0
+        },
+        "hidden_passed": 0,
+        "hidden_total": 3,
+        "fresh_passed": 0,
+        "fresh_total": 6
+      },
+      "steps": [
+        {
+          "tool_name": "read_cobol_file",
+          "arguments": {
+            "filename": "DATENORM.cbl"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "DATENORM.cbl",
+            "content": "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. DATENORM.\n       DATA DIVISION.\n       WORKING-STORAGE SECTION.\n       COPY POLICY_DATE.\n       PROCEDURE DIVISION.\n          IF RAW-YY >= WINDOW-YEAR\n             MOVE 19 TO OUT-CENTURY\n          ELSE\n             MOVE 20 TO OUT-CENTURY\n          END-IF\n          PERFORM VALIDATE-MONTH-DAY\n          GOBACK.\n",
+            "truncated": false
+          }
+        },
+        {
+          "tool_name": "read_copybook",
+          "arguments": {
+            "filename": "POLICY_DATE.cpy"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "POLICY_DATE.cpy",
+            "content": "       01  POLICY-DATE-RECORD.\n           05 POLICY-ID              PIC X(6).\n           05 RAW-DATE               PIC 9(6).\n           05 WINDOW-YEAR            PIC 9(2).\n           05 AMOUNT                 PIC 9(5)V99.\n"
+          }
+        },
+        {
+          "tool_name": "parse_copybook_layout",
+          "arguments": {
+            "filename": "POLICY_DATE.cpy"
+          },
+          "reward": 0.03,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "POLICY_DATE.cpy",
+            "record_name": "POLICY-DATE-RECORD",
+            "total_width": 21,
+            "fields": [
+              {
+                "name": "POLICY-ID",
+                "start": 0,
+                "end": 6,
+                "length": 6,
+                "pic": "X(6)",
+                "python_type": "str"
+              },
+              {
+                "name": "RAW-DATE",
+                "start": 6,
+                "end": 12,
+                "length": 6,
+                "pic": "9(6)",
+                "python_type": "str"
+              },
+              {
+                "name": "WINDOW-YEAR",
+                "start": 12,
+                "end": 14,
+                "length": 2,
+                "pic": "9(2)",
+                "python_type": "int"
+              },
+              {
+                "name": "AMOUNT",
+                "start": 14,
+                "end": 21,
+                "length": 7,
+                "pic": "9(5)V99",
+                "python_type": "Decimal",
+                "scale": 2
+              }
+            ]
+          }
+        },
+        {
+          "tool_name": "inspect_business_rules",
+          "arguments": {},
+          "reward": 0.01,
+          "done": false,
+          "result": {
+            "ok": true,
+            "rules": [
+              "RAW-DATE is YYMMDD.",
+              "If YY >= WINDOW-YEAR, century is 19; otherwise century is 20.",
+              "Invalid dates output 00000000 and valid flag N; amount is preserved."
+            ]
+          }
+        },
+        {
+          "tool_name": "write_python_solution",
+          "arguments": {
+            "code_chars": 1768
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "draft_id": 1,
+            "syntax_ok": true,
+            "safety_ok": true,
+            "error": null
+          }
+        },
+        {
+          "tool_name": "run_visible_tests",
+          "arguments": {
+            "draft_id": 1
+          },
+          "reward": 0.0,
+          "done": false,
+          "result": {
+            "ok": true,
+            "draft_id": 1,
+            "passed": 0,
+            "total": 3,
+            "pass_rate": 0.0,
+            "syntax_ok": true,
+            "safety_ok": true,
+            "interface_ok": true,
+            "timed_out": false,
+            "error": null,
+            "failures": [
+              {
+                "case_id": "visible_1",
+                "input_summary": "twentieth century date by window",
+                "expected_summary": "OUT-POLICY-ID=P00001, OUT-DATE=19991231, OUT-VALID=Y, OUT-AMOUNT=0012345",
+                "actual_summary": "OUT-POLICY-ID=199912, OUT-DATE=31YP0000, OUT-VALID=1, OUT-AMOUNT=0012345",
+                "error": null
+              },
+              {
+                "case_id": "visible_2",
+                "input_summary": "twenty-first century date by window",
+                "expected_summary": "OUT-POLICY-ID=P00002, OUT-DATE=20240229, OUT-VALID=Y, OUT-AMOUNT=0000100",
+                "actual_summary": "OUT-POLICY-ID=202402, OUT-DATE=29YP0000, OUT-VALID=2, OUT-AMOUNT=0000100",
+                "error": null
+              },
+              {
+                "case_id": "visible_3",
+                "input_summary": "invalid month",
+                "expected_summary": "OUT-POLICY-ID=P00003, OUT-DATE=00000000, OUT-VALID=N, OUT-AMOUNT=0000999",
+                "actual_summary": "OUT-POLICY-ID=000000, OUT-DATE=00NP0000, OUT-VALID=3, OUT-AMOUNT=0000999",
+                "error": null
+              }
+            ]
+          }
+        },
+        {
+          "tool_name": "submit_final",
+          "arguments": {
+            "draft_id": 1
+          },
+          "reward": 0.15,
+          "done": true,
+          "result": {
+            "ok": true,
+            "accepted": false,
+            "episode_done": true,
+            "public_score": 0.15,
+            "components": {
+              "hidden_correctness": 0.0,
+              "fresh_correctness": 0.0,
+              "interface_contract": 1.0,
+              "type_and_layout_fidelity": 0.0,
+              "anti_hardcoding": 0.0,
+              "safety": 1.0
+            },
+            "hidden_passed": 0,
+            "hidden_total": 3,
+            "fresh_passed": 0,
+            "fresh_total": 6,
+            "notes": "Hidden and fresh case details are not revealed to the agent."
+          }
+        }
+      ]
+    }
+  ]
+}

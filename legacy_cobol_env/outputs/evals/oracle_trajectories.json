@@ -1,0 +1,1399 @@
+{
+  "policy": "oracle",
+  "task_count": 6,
+  "mean_public_score": 1.0,
+  "accepted_count": 6,
+  "trajectories": [
+    {
+      "policy": "oracle",
+      "task_id": "payroll_net_pay_001",
+      "family_id": "decimal_copybook_payroll",
+      "ticket": {
+        "task_id": "payroll_net_pay_001",
+        "family_id": "decimal_copybook_payroll",
+        "domain": "payroll",
+        "ticket": "Migrate PAYROLL.cbl while preserving copybook offsets, implied decimals, signed deductions, bonus condition names, and fixed-width ACH output.",
+        "available_files": [
+          "PAYROLL.cbl"
+        ],
+        "available_copybooks": [
+          "EMPLOYEE_PAY.cpy"
+        ],
+        "expected_callable": "migrate(input_record: str) -> str",
+        "visible_tests": 3,
+        "hidden_tests": 5,
+        "input_width": 42,
+        "output_width": 28,
+        "max_steps": 12,
+        "allowed_tools": [
+          "read_cobol_file",
+          "read_copybook",
+          "parse_copybook_layout",
+          "inspect_business_rules",
+          "write_python_solution",
+          "run_visible_tests",
+          "inspect_diff",
+          "submit_final"
+        ]
+      },
+      "visible": {
+        "passed": 3,
+        "total": 3,
+        "pass_rate": 1.0,
+        "failures": []
+      },
+      "final": {
+        "public_score": 1.0,
+        "accepted": true,
+        "components": {
+          "hidden_correctness": 1.0,
+          "fresh_correctness": 1.0,
+          "interface_contract": 1.0,
+          "type_and_layout_fidelity": 1.0,
+          "anti_hardcoding": 1.0,
+          "safety": 1.0
+        },
+        "hidden_passed": 5,
+        "hidden_total": 5,
+        "fresh_passed": 6,
+        "fresh_total": 6
+      },
+      "steps": [
+        {
+          "tool_name": "read_cobol_file",
+          "arguments": {
+            "filename": "PAYROLL.cbl"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "PAYROLL.cbl",
+            "content": "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. PAYROLLNET.\n       DATA DIVISION.\n       WORKING-STORAGE SECTION.\n       COPY EMPLOYEE_PAY.\n       01 TAX-AMOUNT                 PIC 9(7)V99.\n       01 NET-AMOUNT                 PIC 9(7)V99.\n       01 PAY-CATEGORY               PIC X.\n       PROCEDURE DIVISION.\n           COMPUTE TAX-AMOUNT ROUNDED = GROSS-PAY * TAX-RATE\n           COMPUTE NET-AMOUNT = GROSS-PAY - TAX-AMOUNT - DEDUCTIONS\n           IF BONUS-ELIGIBLE ADD 50.00 TO NET-AMOUNT END-IF\n           IF NET-AMOUNT < 0 MOVE 0 TO NET-AMOUNT END-IF\n           EVALUATE TRUE\n             WHEN NET-AMOUNT >= 5000.00 MOVE 'H' TO PAY-CATEGORY\n             WHEN NET-AMOUNT >= 2500.00 MOVE 'M' TO PAY-CATEGORY\n             WHEN OTHER MOVE 'L' TO PAY-CATEGORY\n           END-EVALUATE\n           GOBACK.\n",
+            "truncated": false
+          }
+        },
+        {
+          "tool_name": "read_copybook",
+          "arguments": {
+            "filename": "EMPLOYEE_PAY.cpy"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "EMPLOYEE_PAY.cpy",
+            "content": "       01  EMPLOYEE-PAY-RECORD.\n           05 EMP-ID                 PIC X(6).\n           05 EMP-NAME               PIC X(12).\n           05 GROSS-PAY              PIC 9(7)V99.\n           05 TAX-RATE               PIC 9V999.\n           05 DEDUCTIONS             PIC S9(5)V99 SIGN LEADING SEPARATE.\n           05 BONUS-FLAG             PIC X(1).\n              88 BONUS-ELIGIBLE      VALUE 'Y'.\n              88 NO-BONUS            VALUE 'N'.\n           05 FILLER                 PIC X(2).\n"
+          }
+        },
+        {
+          "tool_name": "parse_copybook_layout",
+          "arguments": {
+            "filename": "EMPLOYEE_PAY.cpy"
+          },
+          "reward": 0.03,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "EMPLOYEE_PAY.cpy",
+            "record_name": "EMPLOYEE-PAY-RECORD",
+            "total_width": 42,
+            "fields": [
+              {
+                "name": "EMP-ID",
+                "start": 0,
+                "end": 6,
+                "length": 6,
+                "pic": "X(6)",
+                "python_type": "str"
+              },
+              {
+                "name": "EMP-NAME",
+                "start": 6,
+                "end": 18,
+                "length": 12,
+                "pic": "X(12)",
+                "python_type": "str"
+              },
+              {
+                "name": "GROSS-PAY",
+                "start": 18,
+                "end": 27,
+                "length": 9,
+                "pic": "9(7)V99",
+                "python_type": "Decimal",
+                "scale": 2
+              },
+              {
+                "name": "TAX-RATE",
+                "start": 27,
+                "end": 31,
+                "length": 4,
+                "pic": "9V999",
+                "python_type": "Decimal",
+                "scale": 3
+              },
+              {
+                "name": "DEDUCTIONS",
+                "start": 31,
+                "end": 39,
+                "length": 8,
+                "pic": "S9(5)V99 SIGN LEADING SEPARATE",
+                "python_type": "Decimal",
+                "scale": 2
+              },
+              {
+                "name": "BONUS-FLAG",
+                "start": 39,
+                "end": 40,
+                "length": 1,
+                "pic": "X(1)",
+                "python_type": "str",
+                "level_88": {
+                  "BONUS-ELIGIBLE": "Y",
+                  "NO-BONUS": "N"
+                }
+              },
+              {
+                "name": "FILLER",
+                "start": 40,
+                "end": 42,
+                "length": 2,
+                "pic": "X(2)",
+                "python_type": "str"
+              }
+            ]
+          }
+        },
+        {
+          "tool_name": "inspect_business_rules",
+          "arguments": {},
+          "reward": 0.01,
+          "done": false,
+          "result": {
+            "ok": true,
+            "rules": [
+              "Tax is rounded half up to cents after GROSS-PAY * TAX-RATE.",
+              "NET-AMOUNT = GROSS-PAY - TAX-AMOUNT - DEDUCTIONS.",
+              "BONUS-ELIGIBLE adds 50.00; negative net pay floors to zero.",
+              "Output net pay is a 9-digit zero-padded cents field."
+            ]
+          }
+        },
+        {
+          "tool_name": "write_python_solution",
+          "arguments": {
+            "code_chars": 964
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "draft_id": 1,
+            "syntax_ok": true,
+            "safety_ok": true,
+            "error": null
+          }
+        },
+        {
+          "tool_name": "run_visible_tests",
+          "arguments": {
+            "draft_id": 1
+          },
+          "reward": 0.05,
+          "done": false,
+          "result": {
+            "ok": true,
+            "draft_id": 1,
+            "passed": 3,
+            "total": 3,
+            "pass_rate": 1.0,
+            "syntax_ok": true,
+            "safety_ok": true,
+            "interface_ok": true,
+            "timed_out": false,
+            "error": null,
+            "failures": []
+          }
+        },
+        {
+          "tool_name": "submit_final",
+          "arguments": {
+            "draft_id": 1
+          },
+          "reward": 1.0,
+          "done": true,
+          "result": {
+            "ok": true,
+            "accepted": true,
+            "episode_done": true,
+            "public_score": 1.0,
+            "components": {
+              "hidden_correctness": 1.0,
+              "fresh_correctness": 1.0,
+              "interface_contract": 1.0,
+              "type_and_layout_fidelity": 1.0,
+              "anti_hardcoding": 1.0,
+              "safety": 1.0
+            },
+            "hidden_passed": 5,
+            "hidden_total": 5,
+            "fresh_passed": 6,
+            "fresh_total": 6,
+            "notes": "Hidden and fresh case details are not revealed to the agent."
+          }
+        }
+      ]
+    },
+    {
+      "policy": "oracle",
+      "task_id": "customer_format_001",
+      "family_id": "fixed_width_customer",
+      "ticket": {
+        "task_id": "customer_format_001",
+        "family_id": "fixed_width_customer",
+        "domain": "customer master data",
+        "ticket": "Migrate CUSTFMT.cbl. Preserve fixed-width name formatting, status mapping, ZIP leading zeros, and zero-padded balance output.",
+        "available_files": [
+          "CUSTFMT.cbl"
+        ],
+        "available_copybooks": [
+          "CUSTOMER_REC.cpy"
+        ],
+        "expected_callable": "migrate(input_record: str) -> str",
+        "visible_tests": 3,
+        "hidden_tests": 3,
+        "input_width": 40,
+        "output_width": 41,
+        "max_steps": 12,
+        "allowed_tools": [
+          "read_cobol_file",
+          "read_copybook",
+          "parse_copybook_layout",
+          "inspect_business_rules",
+          "write_python_solution",
+          "run_visible_tests",
+          "inspect_diff",
+          "submit_final"
+        ]
+      },
+      "visible": {
+        "passed": 3,
+        "total": 3,
+        "pass_rate": 1.0,
+        "failures": []
+      },
+      "final": {
+        "public_score": 1.0,
+        "accepted": true,
+        "components": {
+          "hidden_correctness": 1.0,
+          "fresh_correctness": 1.0,
+          "interface_contract": 1.0,
+          "type_and_layout_fidelity": 1.0,
+          "anti_hardcoding": 1.0,
+          "safety": 1.0
+        },
+        "hidden_passed": 3,
+        "hidden_total": 3,
+        "fresh_passed": 6,
+        "fresh_total": 6
+      },
+      "steps": [
+        {
+          "tool_name": "read_cobol_file",
+          "arguments": {
+            "filename": "CUSTFMT.cbl"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "CUSTFMT.cbl",
+            "content": "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. CUSTFMT.\n       DATA DIVISION.\n       WORKING-STORAGE SECTION.\n       COPY CUSTOMER_REC.\n       01 OUTPUT-RECORD.\n          05 OUT-CUST-ID             PIC X(5).\n          05 OUT-FULL-NAME           PIC X(22).\n          05 OUT-ZIP-CODE            PIC 9(5).\n          05 OUT-STATUS              PIC X.\n          05 OUT-BALANCE             PIC 9(6)V99.\n       PROCEDURE DIVISION.\n          STRING LAST-NAME DELIMITED BY SIZE ', ' FIRST-NAME DELIMITED BY SIZE\n             INTO OUT-FULL-NAME\n          EVALUATE STATUS-CODE\n             WHEN 'A' MOVE 'O' TO OUT-STATUS\n             WHEN 'S' MOVE 'S' TO OUT-STATUS\n             WHEN OTHER MOVE 'C' TO OUT-STATUS\n          END-EVALUATE\n          GOBACK.\n",
+            "truncated": false
+          }
+        },
+        {
+          "tool_name": "read_copybook",
+          "arguments": {
+            "filename": "CUSTOMER_REC.cpy"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "CUSTOMER_REC.cpy",
+            "content": "       01  CUSTOMER-RECORD.\n           05 CUST-ID                PIC X(5).\n           05 FIRST-NAME             PIC X(10).\n           05 LAST-NAME              PIC X(12).\n           05 ZIP-CODE               PIC 9(5).\n           05 STATUS-CODE            PIC X.\n              88 ACTIVE-CUSTOMER     VALUE 'A'.\n              88 SUSPENDED-CUSTOMER  VALUE 'S'.\n              88 CLOSED-CUSTOMER     VALUE 'C'.\n           05 BALANCE-DUE            PIC 9(5)V99.\n"
+          }
+        },
+        {
+          "tool_name": "parse_copybook_layout",
+          "arguments": {
+            "filename": "CUSTOMER_REC.cpy"
+          },
+          "reward": 0.03,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "CUSTOMER_REC.cpy",
+            "record_name": "CUSTOMER-RECORD",
+            "total_width": 40,
+            "fields": [
+              {
+                "name": "CUST-ID",
+                "start": 0,
+                "end": 5,
+                "length": 5,
+                "pic": "X(5)",
+                "python_type": "str"
+              },
+              {
+                "name": "FIRST-NAME",
+                "start": 5,
+                "end": 15,
+                "length": 10,
+                "pic": "X(10)",
+                "python_type": "str"
+              },
+              {
+                "name": "LAST-NAME",
+                "start": 15,
+                "end": 27,
+                "length": 12,
+                "pic": "X(12)",
+                "python_type": "str"
+              },
+              {
+                "name": "ZIP-CODE",
+                "start": 27,
+                "end": 32,
+                "length": 5,
+                "pic": "9(5)",
+                "python_type": "str"
+              },
+              {
+                "name": "STATUS-CODE",
+                "start": 32,
+                "end": 33,
+                "length": 1,
+                "pic": "X",
+                "python_type": "str"
+              },
+              {
+                "name": "BALANCE-DUE",
+                "start": 33,
+                "end": 40,
+                "length": 7,
+                "pic": "9(5)V99",
+                "python_type": "Decimal",
+                "scale": 2
+              }
+            ]
+          }
+        },
+        {
+          "tool_name": "inspect_business_rules",
+          "arguments": {},
+          "reward": 0.01,
+          "done": false,
+          "result": {
+            "ok": true,
+            "rules": [
+              "OUT-FULL-NAME is LAST-NAME, comma-space, FIRST-NAME, truncated/padded to 22.",
+              "A maps to O, S maps to S, anything else maps to C.",
+              "ZIP stays five digits and OUT-BALANCE is eight zero-padded digits."
+            ]
+          }
+        },
+        {
+          "tool_name": "write_python_solution",
+          "arguments": {
+            "code_chars": 405
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "draft_id": 1,
+            "syntax_ok": true,
+            "safety_ok": true,
+            "error": null
+          }
+        },
+        {
+          "tool_name": "run_visible_tests",
+          "arguments": {
+            "draft_id": 1
+          },
+          "reward": 0.05,
+          "done": false,
+          "result": {
+            "ok": true,
+            "draft_id": 1,
+            "passed": 3,
+            "total": 3,
+            "pass_rate": 1.0,
+            "syntax_ok": true,
+            "safety_ok": true,
+            "interface_ok": true,
+            "timed_out": false,
+            "error": null,
+            "failures": []
+          }
+        },
+        {
+          "tool_name": "submit_final",
+          "arguments": {
+            "draft_id": 1
+          },
+          "reward": 1.0,
+          "done": true,
+          "result": {
+            "ok": true,
+            "accepted": true,
+            "episode_done": true,
+            "public_score": 1.0,
+            "components": {
+              "hidden_correctness": 1.0,
+              "fresh_correctness": 1.0,
+              "interface_contract": 1.0,
+              "type_and_layout_fidelity": 1.0,
+              "anti_hardcoding": 1.0,
+              "safety": 1.0
+            },
+            "hidden_passed": 3,
+            "hidden_total": 3,
+            "fresh_passed": 6,
+            "fresh_total": 6,
+            "notes": "Hidden and fresh case details are not revealed to the agent."
+          }
+        }
+      ]
+    },
+    {
+      "policy": "oracle",
+      "task_id": "claims_eligibility_001",
+      "family_id": "claims_eligibility_branching",
+      "ticket": {
+        "task_id": "claims_eligibility_001",
+        "family_id": "claims_eligibility_branching",
+        "domain": "insurance claims",
+        "ticket": "Migrate CLMELIG.cbl. Preserve EVALUATE TRUE branch precedence for claim approvals, denials, and manual review reasons.",
+        "available_files": [
+          "CLMELIG.cbl"
+        ],
+        "available_copybooks": [
+          "CLAIM_REC.cpy"
+        ],
+        "expected_callable": "migrate(input_record: str) -> str",
+        "visible_tests": 3,
+        "hidden_tests": 3,
+        "input_width": 21,
+        "output_width": 9,
+        "max_steps": 12,
+        "allowed_tools": [
+          "read_cobol_file",
+          "read_copybook",
+          "parse_copybook_layout",
+          "inspect_business_rules",
+          "write_python_solution",
+          "run_visible_tests",
+          "inspect_diff",
+          "submit_final"
+        ]
+      },
+      "visible": {
+        "passed": 3,
+        "total": 3,
+        "pass_rate": 1.0,
+        "failures": []
+      },
+      "final": {
+        "public_score": 1.0,
+        "accepted": true,
+        "components": {
+          "hidden_correctness": 1.0,
+          "fresh_correctness": 1.0,
+          "interface_contract": 1.0,
+          "type_and_layout_fidelity": 1.0,
+          "anti_hardcoding": 1.0,
+          "safety": 1.0
+        },
+        "hidden_passed": 3,
+        "hidden_total": 3,
+        "fresh_passed": 6,
+        "fresh_total": 6
+      },
+      "steps": [
+        {
+          "tool_name": "read_cobol_file",
+          "arguments": {
+            "filename": "CLMELIG.cbl"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "CLMELIG.cbl",
+            "content": "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. CLMELIG.\n       DATA DIVISION.\n       WORKING-STORAGE SECTION.\n       COPY CLAIM_REC.\n       PROCEDURE DIVISION.\n          EVALUATE TRUE\n             WHEN AGE < 18 MOVE 'D' TO DECISION MOVE 'A1' TO REASON\n             WHEN PLAN-CODE = 'B' AND CLAIM-AMOUNT > 1500.00 MOVE 'R' TO DECISION MOVE 'B2' TO REASON\n             WHEN PREAUTH-FLAG = 'N' AND CLAIM-AMOUNT > 1000.00 MOVE 'D' TO DECISION MOVE 'P1' TO REASON\n             WHEN SERVICE-DAYS > 030 MOVE 'R' TO DECISION MOVE 'L1' TO REASON\n             WHEN OTHER MOVE 'A' TO DECISION MOVE 'OK' TO REASON\n          END-EVALUATE\n          GOBACK.\n",
+            "truncated": false
+          }
+        },
+        {
+          "tool_name": "read_copybook",
+          "arguments": {
+            "filename": "CLAIM_REC.cpy"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "CLAIM_REC.cpy",
+            "content": "       01  CLAIM-RECORD.\n           05 CLAIM-ID               PIC X(6).\n           05 AGE                    PIC 9(3).\n           05 PLAN-CODE              PIC X.\n           05 SERVICE-DAYS           PIC 9(3).\n           05 PREAUTH-FLAG           PIC X.\n           05 CLAIM-AMOUNT           PIC 9(5)V99.\n"
+          }
+        },
+        {
+          "tool_name": "parse_copybook_layout",
+          "arguments": {
+            "filename": "CLAIM_REC.cpy"
+          },
+          "reward": 0.03,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "CLAIM_REC.cpy",
+            "record_name": "CLAIM-RECORD",
+            "total_width": 21,
+            "fields": [
+              {
+                "name": "CLAIM-ID",
+                "start": 0,
+                "end": 6,
+                "length": 6,
+                "pic": "X(6)",
+                "python_type": "str"
+              },
+              {
+                "name": "AGE",
+                "start": 6,
+                "end": 9,
+                "length": 3,
+                "pic": "9(3)",
+                "python_type": "int"
+              },
+              {
+                "name": "PLAN-CODE",
+                "start": 9,
+                "end": 10,
+                "length": 1,
+                "pic": "X",
+                "python_type": "str"
+              },
+              {
+                "name": "SERVICE-DAYS",
+                "start": 10,
+                "end": 13,
+                "length": 3,
+                "pic": "9(3)",
+                "python_type": "int"
+              },
+              {
+                "name": "PREAUTH-FLAG",
+                "start": 13,
+                "end": 14,
+                "length": 1,
+                "pic": "X",
+                "python_type": "str"
+              },
+              {
+                "name": "CLAIM-AMOUNT",
+                "start": 14,
+                "end": 21,
+                "length": 7,
+                "pic": "9(5)V99",
+                "python_type": "Decimal",
+                "scale": 2
+              }
+            ]
+          }
+        },
+        {
+          "tool_name": "inspect_business_rules",
+          "arguments": {},
+          "reward": 0.01,
+          "done": false,
+          "result": {
+            "ok": true,
+            "rules": [
+              "Branch order matters: age, plan-B large claim, missing preauth, long service, default approve.",
+              "Amounts are implied cents; 100000 means 1000.00."
+            ]
+          }
+        },
+        {
+          "tool_name": "write_python_solution",
+          "arguments": {
+            "code_chars": 623
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "draft_id": 1,
+            "syntax_ok": true,
+            "safety_ok": true,
+            "error": null
+          }
+        },
+        {
+          "tool_name": "run_visible_tests",
+          "arguments": {
+            "draft_id": 1
+          },
+          "reward": 0.05,
+          "done": false,
+          "result": {
+            "ok": true,
+            "draft_id": 1,
+            "passed": 3,
+            "total": 3,
+            "pass_rate": 1.0,
+            "syntax_ok": true,
+            "safety_ok": true,
+            "interface_ok": true,
+            "timed_out": false,
+            "error": null,
+            "failures": []
+          }
+        },
+        {
+          "tool_name": "submit_final",
+          "arguments": {
+            "draft_id": 1
+          },
+          "reward": 1.0,
+          "done": true,
+          "result": {
+            "ok": true,
+            "accepted": true,
+            "episode_done": true,
+            "public_score": 1.0,
+            "components": {
+              "hidden_correctness": 1.0,
+              "fresh_correctness": 1.0,
+              "interface_contract": 1.0,
+              "type_and_layout_fidelity": 1.0,
+              "anti_hardcoding": 1.0,
+              "safety": 1.0
+            },
+            "hidden_passed": 3,
+            "hidden_total": 3,
+            "fresh_passed": 6,
+            "fresh_total": 6,
+            "notes": "Hidden and fresh case details are not revealed to the agent."
+          }
+        }
+      ]
+    },
+    {
+      "policy": "oracle",
+      "task_id": "account_status_001",
+      "family_id": "account_status_level88",
+      "ticket": {
+        "task_id": "account_status_001",
+        "family_id": "account_status_level88",
+        "domain": "banking",
+        "ticket": "Migrate ACCTSTAT.cbl. Correctly interpret level-88 status names and preserve branch precedence for account servicing actions.",
+        "available_files": [
+          "ACCTSTAT.cbl"
+        ],
+        "available_copybooks": [
+          "ACCOUNT_REC.cpy"
+        ],
+        "expected_callable": "migrate(input_record: str) -> str",
+        "visible_tests": 3,
+        "hidden_tests": 3,
+        "input_width": 19,
+        "output_width": 9,
+        "max_steps": 12,
+        "allowed_tools": [
+          "read_cobol_file",
+          "read_copybook",
+          "parse_copybook_layout",
+          "inspect_business_rules",
+          "write_python_solution",
+          "run_visible_tests",
+          "inspect_diff",
+          "submit_final"
+        ]
+      },
+      "visible": {
+        "passed": 3,
+        "total": 3,
+        "pass_rate": 1.0,
+        "failures": []
+      },
+      "final": {
+        "public_score": 1.0,
+        "accepted": true,
+        "components": {
+          "hidden_correctness": 1.0,
+          "fresh_correctness": 1.0,
+          "interface_contract": 1.0,
+          "type_and_layout_fidelity": 1.0,
+          "anti_hardcoding": 1.0,
+          "safety": 1.0
+        },
+        "hidden_passed": 3,
+        "hidden_total": 3,
+        "fresh_passed": 6,
+        "fresh_total": 6
+      },
+      "steps": [
+        {
+          "tool_name": "read_cobol_file",
+          "arguments": {
+            "filename": "ACCTSTAT.cbl"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "ACCTSTAT.cbl",
+            "content": "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. ACCTSTAT.\n       DATA DIVISION.\n       WORKING-STORAGE SECTION.\n       COPY ACCOUNT_REC.\n       PROCEDURE DIVISION.\n          EVALUATE TRUE\n             WHEN CLOSED-ACCT MOVE 'CL' TO CATEGORY MOVE 'N' TO ACTION\n             WHEN FROZEN-ACCT MOVE 'FR' TO CATEGORY MOVE 'H' TO ACTION\n             WHEN DAYS-PAST-DUE >= 090 MOVE 'DL' TO CATEGORY MOVE 'C' TO ACTION\n             WHEN BALANCE < 0 MOVE 'OD' TO CATEGORY MOVE 'R' TO ACTION\n             WHEN OTHER MOVE 'OK' TO CATEGORY MOVE 'N' TO ACTION\n          END-EVALUATE\n          GOBACK.\n",
+            "truncated": false
+          }
+        },
+        {
+          "tool_name": "read_copybook",
+          "arguments": {
+            "filename": "ACCOUNT_REC.cpy"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "ACCOUNT_REC.cpy",
+            "content": "       01  ACCOUNT-RECORD.\n           05 ACCOUNT-ID             PIC X(6).\n           05 STATUS-CODE            PIC X.\n              88 ACTIVE-ACCT         VALUE 'A'.\n              88 FROZEN-ACCT         VALUE 'F'.\n              88 CLOSED-ACCT         VALUE 'C'.\n           05 BALANCE                PIC S9(6)V99 SIGN LEADING SEPARATE.\n           05 DAYS-PAST-DUE          PIC 9(3).\n"
+          }
+        },
+        {
+          "tool_name": "parse_copybook_layout",
+          "arguments": {
+            "filename": "ACCOUNT_REC.cpy"
+          },
+          "reward": 0.03,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "ACCOUNT_REC.cpy",
+            "record_name": "ACCOUNT-RECORD",
+            "total_width": 19,
+            "fields": [
+              {
+                "name": "ACCOUNT-ID",
+                "start": 0,
+                "end": 6,
+                "length": 6,
+                "pic": "X(6)",
+                "python_type": "str"
+              },
+              {
+                "name": "STATUS-CODE",
+                "start": 6,
+                "end": 7,
+                "length": 1,
+                "pic": "X",
+                "python_type": "str",
+                "level_88": {
+                  "ACTIVE-ACCT": "A",
+                  "FROZEN-ACCT": "F",
+                  "CLOSED-ACCT": "C"
+                }
+              },
+              {
+                "name": "BALANCE",
+                "start": 7,
+                "end": 16,
+                "length": 9,
+                "pic": "S9(6)V99 SIGN LEADING SEPARATE",
+                "python_type": "Decimal",
+                "scale": 2
+              },
+              {
+                "name": "DAYS-PAST-DUE",
+                "start": 16,
+                "end": 19,
+                "length": 3,
+                "pic": "9(3)",
+                "python_type": "int"
+              }
+            ]
+          }
+        },
+        {
+          "tool_name": "inspect_business_rules",
+          "arguments": {},
+          "reward": 0.01,
+          "done": false,
+          "result": {
+            "ok": true,
+            "rules": [
+              "CLOSED-ACCT and FROZEN-ACCT are level-88 names over STATUS-CODE.",
+              "Closed and frozen branches precede delinquency and overdrawn checks."
+            ]
+          }
+        },
+        {
+          "tool_name": "write_python_solution",
+          "arguments": {
+            "code_chars": 607
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "draft_id": 1,
+            "syntax_ok": true,
+            "safety_ok": true,
+            "error": null
+          }
+        },
+        {
+          "tool_name": "run_visible_tests",
+          "arguments": {
+            "draft_id": 1
+          },
+          "reward": 0.05,
+          "done": false,
+          "result": {
+            "ok": true,
+            "draft_id": 1,
+            "passed": 3,
+            "total": 3,
+            "pass_rate": 1.0,
+            "syntax_ok": true,
+            "safety_ok": true,
+            "interface_ok": true,
+            "timed_out": false,
+            "error": null,
+            "failures": []
+          }
+        },
+        {
+          "tool_name": "submit_final",
+          "arguments": {
+            "draft_id": 1
+          },
+          "reward": 1.0,
+          "done": true,
+          "result": {
+            "ok": true,
+            "accepted": true,
+            "episode_done": true,
+            "public_score": 1.0,
+            "components": {
+              "hidden_correctness": 1.0,
+              "fresh_correctness": 1.0,
+              "interface_contract": 1.0,
+              "type_and_layout_fidelity": 1.0,
+              "anti_hardcoding": 1.0,
+              "safety": 1.0
+            },
+            "hidden_passed": 3,
+            "hidden_total": 3,
+            "fresh_passed": 6,
+            "fresh_total": 6,
+            "notes": "Hidden and fresh case details are not revealed to the agent."
+          }
+        }
+      ]
+    },
+    {
+      "policy": "oracle",
+      "task_id": "invoice_occurs_001",
+      "family_id": "invoice_occurs_totals",
+      "ticket": {
+        "task_id": "invoice_occurs_001",
+        "family_id": "invoice_occurs_totals",
+        "domain": "invoicing",
+        "ticket": "Migrate INVTOTAL.cbl and TAXRATE.cbl. Preserve OCCURS stride parsing, item-count bounds, tax-code lookup behavior, and fixed-width total output.",
+        "available_files": [
+          "INVTOTAL.cbl",
+          "TAXRATE.cbl"
+        ],
+        "available_copybooks": [
+          "INVOICE_REC.cpy",
+          "TAX_CODE.cpy"
+        ],
+        "expected_callable": "migrate(input_record: str) -> str",
+        "visible_tests": 3,
+        "hidden_tests": 4,
+        "input_width": 44,
+        "output_width": 18,
+        "max_steps": 12,
+        "allowed_tools": [
+          "read_cobol_file",
+          "read_copybook",
+          "parse_copybook_layout",
+          "inspect_business_rules",
+          "write_python_solution",
+          "run_visible_tests",
+          "inspect_diff",
+          "submit_final"
+        ]
+      },
+      "visible": {
+        "passed": 3,
+        "total": 3,
+        "pass_rate": 1.0,
+        "failures": []
+      },
+      "final": {
+        "public_score": 1.0,
+        "accepted": true,
+        "components": {
+          "hidden_correctness": 1.0,
+          "fresh_correctness": 1.0,
+          "interface_contract": 1.0,
+          "type_and_layout_fidelity": 1.0,
+          "anti_hardcoding": 1.0,
+          "safety": 1.0
+        },
+        "hidden_passed": 4,
+        "hidden_total": 4,
+        "fresh_passed": 6,
+        "fresh_total": 6
+      },
+      "steps": [
+        {
+          "tool_name": "read_cobol_file",
+          "arguments": {
+            "filename": "INVTOTAL.cbl"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "INVTOTAL.cbl",
+            "content": "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. INVTOTAL.\n       DATA DIVISION.\n       WORKING-STORAGE SECTION.\n       COPY INVOICE_REC.\n       COPY TAX_CODE.\n       01 IDX                        PIC 9 VALUE 0.\n       01 LINE-AMOUNT                PIC 9(7)V99 VALUE 0.\n       01 TAX-AMOUNT                 PIC 9(7)V99 VALUE 0.\n       01 TAX-PERCENT                PIC 9V9999 VALUE 0.\n       01 INVOICE-TOTAL              PIC 9(7)V99 VALUE 0.\n       PROCEDURE DIVISION.\n          PERFORM VARYING IDX FROM 1 BY 1 UNTIL IDX > ITEM-COUNT\n             COMPUTE LINE-AMOUNT ROUNDED = ITEM-QTY(IDX) * ITEM-PRICE(IDX)\n             CALL 'TAXRATE' USING TAX-CODE(IDX) TAX-PERCENT\n             COMPUTE TAX-AMOUNT ROUNDED = LINE-AMOUNT * TAX-PERCENT\n             ADD TAX-AMOUNT TO LINE-AMOUNT\n             ADD LINE-AMOUNT TO INVOICE-TOTAL\n          END-PERFORM\n          GOBACK.\n",
+            "truncated": false
+          }
+        },
+        {
+          "tool_name": "read_cobol_file",
+          "arguments": {
+            "filename": "TAXRATE.cbl"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "TAXRATE.cbl",
+            "content": "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. TAXRATE.\n       DATA DIVISION.\n       LINKAGE SECTION.\n       01 LK-TAX-CODE                PIC X.\n       01 LK-TAX-PERCENT             PIC 9V9999.\n       PROCEDURE DIVISION USING LK-TAX-CODE LK-TAX-PERCENT.\n          EVALUATE LK-TAX-CODE\n             WHEN 'S' MOVE 0.0725 TO LK-TAX-PERCENT\n             WHEN 'R' MOVE 0.0250 TO LK-TAX-PERCENT\n             WHEN 'L' MOVE 0.1000 TO LK-TAX-PERCENT\n             WHEN OTHER MOVE 0.0000 TO LK-TAX-PERCENT\n          END-EVALUATE\n          GOBACK.\n",
+            "truncated": false
+          }
+        },
+        {
+          "tool_name": "read_copybook",
+          "arguments": {
+            "filename": "INVOICE_REC.cpy"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "INVOICE_REC.cpy",
+            "content": "       01  INVOICE-RECORD.\n           05 INVOICE-ID             PIC X(6).\n           05 ITEM-COUNT             PIC 9(2).\n           05 LINE-ITEM OCCURS 4 TIMES.\n              10 ITEM-QTY            PIC 9(2).\n              10 ITEM-PRICE          PIC 9(4)V99.\n              10 TAX-CODE            PIC X.\n"
+          }
+        },
+        {
+          "tool_name": "parse_copybook_layout",
+          "arguments": {
+            "filename": "INVOICE_REC.cpy"
+          },
+          "reward": 0.03,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "INVOICE_REC.cpy",
+            "record_name": "INVOICE-RECORD",
+            "total_width": 44,
+            "fields": [
+              {
+                "name": "INVOICE-ID",
+                "start": 0,
+                "end": 6,
+                "length": 6,
+                "pic": "X(6)",
+                "python_type": "str"
+              },
+              {
+                "name": "ITEM-COUNT",
+                "start": 6,
+                "end": 8,
+                "length": 2,
+                "pic": "9(2)",
+                "python_type": "int"
+              },
+              {
+                "name": "LINE-ITEMS",
+                "start": 8,
+                "end": 44,
+                "length": 36,
+                "pic": "OCCURS 4 TIMES",
+                "python_type": "group",
+                "occurs": 4,
+                "stride": 9
+              }
+            ]
+          }
+        },
+        {
+          "tool_name": "read_copybook",
+          "arguments": {
+            "filename": "TAX_CODE.cpy"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "TAX_CODE.cpy",
+            "content": "       01  TAX-CODE-TABLE.\n           05 TAX-CODE-ENTRY OCCURS 4 TIMES.\n              10 TAX-CODE-KEY        PIC X.\n              10 TAX-RATE            PIC 9V9999.\n"
+          }
+        },
+        {
+          "tool_name": "parse_copybook_layout",
+          "arguments": {
+            "filename": "TAX_CODE.cpy"
+          },
+          "reward": 0.03,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "TAX_CODE.cpy",
+            "record_name": "INVOICE-RECORD",
+            "total_width": 44,
+            "fields": [
+              {
+                "name": "INVOICE-ID",
+                "start": 0,
+                "end": 6,
+                "length": 6,
+                "pic": "X(6)",
+                "python_type": "str"
+              },
+              {
+                "name": "ITEM-COUNT",
+                "start": 6,
+                "end": 8,
+                "length": 2,
+                "pic": "9(2)",
+                "python_type": "int"
+              },
+              {
+                "name": "LINE-ITEMS",
+                "start": 8,
+                "end": 44,
+                "length": 36,
+                "pic": "OCCURS 4 TIMES",
+                "python_type": "group",
+                "occurs": 4,
+                "stride": 9
+              }
+            ]
+          }
+        },
+        {
+          "tool_name": "inspect_business_rules",
+          "arguments": {},
+          "reward": 0.01,
+          "done": false,
+          "result": {
+            "ok": true,
+            "rules": [
+              "LINE-ITEM OCCURS 4 TIMES with a 9-byte stride.",
+              "Only the first ITEM-COUNT entries contribute to the total.",
+              "Tax codes are resolved through the separate TAXRATE program; handle all code branches found there.",
+              "Keep the total, item count, and high/low flag in the fixed-width output layout."
+            ]
+          }
+        },
+        {
+          "tool_name": "write_python_solution",
+          "arguments": {
+            "code_chars": 984
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "draft_id": 1,
+            "syntax_ok": true,
+            "safety_ok": true,
+            "error": null
+          }
+        },
+        {
+          "tool_name": "run_visible_tests",
+          "arguments": {
+            "draft_id": 1
+          },
+          "reward": 0.05,
+          "done": false,
+          "result": {
+            "ok": true,
+            "draft_id": 1,
+            "passed": 3,
+            "total": 3,
+            "pass_rate": 1.0,
+            "syntax_ok": true,
+            "safety_ok": true,
+            "interface_ok": true,
+            "timed_out": false,
+            "error": null,
+            "failures": []
+          }
+        },
+        {
+          "tool_name": "submit_final",
+          "arguments": {
+            "draft_id": 1
+          },
+          "reward": 1.0,
+          "done": true,
+          "result": {
+            "ok": true,
+            "accepted": true,
+            "episode_done": true,
+            "public_score": 1.0,
+            "components": {
+              "hidden_correctness": 1.0,
+              "fresh_correctness": 1.0,
+              "interface_contract": 1.0,
+              "type_and_layout_fidelity": 1.0,
+              "anti_hardcoding": 1.0,
+              "safety": 1.0
+            },
+            "hidden_passed": 4,
+            "hidden_total": 4,
+            "fresh_passed": 6,
+            "fresh_total": 6,
+            "notes": "Hidden and fresh case details are not revealed to the agent."
+          }
+        }
+      ]
+    },
+    {
+      "policy": "oracle",
+      "task_id": "date_normalization_001",
+      "family_id": "date_normalization",
+      "ticket": {
+        "task_id": "date_normalization_001",
+        "family_id": "date_normalization",
+        "domain": "claims and billing",
+        "ticket": "Migrate DATENORM.cbl. Preserve legacy YYMMDD century-window rules and invalid-date behavior instead of blindly using modern date parsing.",
+        "available_files": [
+          "DATENORM.cbl"
+        ],
+        "available_copybooks": [
+          "POLICY_DATE.cpy"
+        ],
+        "expected_callable": "migrate(input_record: str) -> str",
+        "visible_tests": 3,
+        "hidden_tests": 3,
+        "input_width": 21,
+        "output_width": 22,
+        "max_steps": 12,
+        "allowed_tools": [
+          "read_cobol_file",
+          "read_copybook",
+          "parse_copybook_layout",
+          "inspect_business_rules",
+          "write_python_solution",
+          "run_visible_tests",
+          "inspect_diff",
+          "submit_final"
+        ]
+      },
+      "visible": {
+        "passed": 3,
+        "total": 3,
+        "pass_rate": 1.0,
+        "failures": []
+      },
+      "final": {
+        "public_score": 1.0,
+        "accepted": true,
+        "components": {
+          "hidden_correctness": 1.0,
+          "fresh_correctness": 1.0,
+          "interface_contract": 1.0,
+          "type_and_layout_fidelity": 1.0,
+          "anti_hardcoding": 1.0,
+          "safety": 1.0
+        },
+        "hidden_passed": 3,
+        "hidden_total": 3,
+        "fresh_passed": 6,
+        "fresh_total": 6
+      },
+      "steps": [
+        {
+          "tool_name": "read_cobol_file",
+          "arguments": {
+            "filename": "DATENORM.cbl"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "DATENORM.cbl",
+            "content": "       IDENTIFICATION DIVISION.\n       PROGRAM-ID. DATENORM.\n       DATA DIVISION.\n       WORKING-STORAGE SECTION.\n       COPY POLICY_DATE.\n       PROCEDURE DIVISION.\n          IF RAW-YY >= WINDOW-YEAR\n             MOVE 19 TO OUT-CENTURY\n          ELSE\n             MOVE 20 TO OUT-CENTURY\n          END-IF\n          PERFORM VALIDATE-MONTH-DAY\n          GOBACK.\n",
+            "truncated": false
+          }
+        },
+        {
+          "tool_name": "read_copybook",
+          "arguments": {
+            "filename": "POLICY_DATE.cpy"
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "POLICY_DATE.cpy",
+            "content": "       01  POLICY-DATE-RECORD.\n           05 POLICY-ID              PIC X(6).\n           05 RAW-DATE               PIC 9(6).\n           05 WINDOW-YEAR            PIC 9(2).\n           05 AMOUNT                 PIC 9(5)V99.\n"
+          }
+        },
+        {
+          "tool_name": "parse_copybook_layout",
+          "arguments": {
+            "filename": "POLICY_DATE.cpy"
+          },
+          "reward": 0.03,
+          "done": false,
+          "result": {
+            "ok": true,
+            "filename": "POLICY_DATE.cpy",
+            "record_name": "POLICY-DATE-RECORD",
+            "total_width": 21,
+            "fields": [
+              {
+                "name": "POLICY-ID",
+                "start": 0,
+                "end": 6,
+                "length": 6,
+                "pic": "X(6)",
+                "python_type": "str"
+              },
+              {
+                "name": "RAW-DATE",
+                "start": 6,
+                "end": 12,
+                "length": 6,
+                "pic": "9(6)",
+                "python_type": "str"
+              },
+              {
+                "name": "WINDOW-YEAR",
+                "start": 12,
+                "end": 14,
+                "length": 2,
+                "pic": "9(2)",
+                "python_type": "int"
+              },
+              {
+                "name": "AMOUNT",
+                "start": 14,
+                "end": 21,
+                "length": 7,
+                "pic": "9(5)V99",
+                "python_type": "Decimal",
+                "scale": 2
+              }
+            ]
+          }
+        },
+        {
+          "tool_name": "inspect_business_rules",
+          "arguments": {},
+          "reward": 0.01,
+          "done": false,
+          "result": {
+            "ok": true,
+            "rules": [
+              "RAW-DATE is YYMMDD.",
+              "If YY >= WINDOW-YEAR, century is 19; otherwise century is 20.",
+              "Invalid dates output 00000000 and valid flag N; amount is preserved."
+            ]
+          }
+        },
+        {
+          "tool_name": "write_python_solution",
+          "arguments": {
+            "code_chars": 813
+          },
+          "reward": 0.02,
+          "done": false,
+          "result": {
+            "ok": true,
+            "draft_id": 1,
+            "syntax_ok": true,
+            "safety_ok": true,
+            "error": null
+          }
+        },
+        {
+          "tool_name": "run_visible_tests",
+          "arguments": {
+            "draft_id": 1
+          },
+          "reward": 0.05,
+          "done": false,
+          "result": {
+            "ok": true,
+            "draft_id": 1,
+            "passed": 3,
+            "total": 3,
+            "pass_rate": 1.0,
+            "syntax_ok": true,
+            "safety_ok": true,
+            "interface_ok": true,
+            "timed_out": false,
+            "error": null,
+            "failures": []
+          }
+        },
+        {
+          "tool_name": "submit_final",
+          "arguments": {
+            "draft_id": 1
+          },
+          "reward": 1.0,
+          "done": true,
+          "result": {
+            "ok": true,
+            "accepted": true,
+            "episode_done": true,
+            "public_score": 1.0,
+            "components": {
+              "hidden_correctness": 1.0,
+              "fresh_correctness": 1.0,
+              "interface_contract": 1.0,
+              "type_and_layout_fidelity": 1.0,
+              "anti_hardcoding": 1.0,
+              "safety": 1.0
+            },
+            "hidden_passed": 3,
+            "hidden_total": 3,
+            "fresh_passed": 6,
+            "fresh_total": 6,
+            "notes": "Hidden and fresh case details are not revealed to the agent."
+          }
+        }
+      ]
+    }
+  ]
+}

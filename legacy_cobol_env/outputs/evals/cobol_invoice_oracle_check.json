@@ -1,0 +1,123 @@
+{
+  "ok": true,
+  "image_tag": "legacy-cobol-invoice-oracle:local",
+  "case_count": 13,
+  "passed_count": 13,
+  "mismatches": [],
+  "cases": [
+    {
+      "case_id": "visible_1",
+      "summary": "two standard and non-taxable lines",
+      "input_record": "I000010202012345S01010000N00000000N00000000N",
+      "expected_output": "I0000100003648002L",
+      "actual_output": "I0000100003648002L",
+      "passed": true
+    },
+    {
+      "case_id": "visible_2",
+      "summary": "zero item invoice",
+      "input_record": "I000020000000000N00000000N00000000N00000000N",
+      "expected_output": "I0000200000000000L",
+      "actual_output": "I0000200000000000L",
+      "passed": true
+    },
+    {
+      "case_id": "visible_3",
+      "summary": "four item high invoice",
+      "input_record": "I000030404025000S01099000N03012345R02050000L",
+      "expected_output": "I0000300035421104H",
+      "actual_output": "I0000300035421104H",
+      "passed": true
+    },
+    {
+      "case_id": "hidden_1",
+      "summary": "standard tax rounding probe",
+      "input_record": "I000040103033333S00000000N00000000N00000000N",
+      "expected_output": "I0000400010724901H",
+      "actual_output": "I0000400010724901H",
+      "passed": true
+    },
+    {
+      "case_id": "hidden_2",
+      "summary": "count ignores padded groups",
+      "input_record": "I000050101000100N00000000N00000000N00000000N",
+      "expected_output": "I0000500000010001L",
+      "actual_output": "I0000500000010001L",
+      "passed": true
+    },
+    {
+      "case_id": "hidden_3",
+      "summary": "threshold flag high with luxury code",
+      "input_record": "I000060104030000L00000000N00000000N00000000N",
+      "expected_output": "I0000600013200001H",
+      "actual_output": "I0000600013200001H",
+      "passed": true
+    },
+    {
+      "case_id": "hidden_4",
+      "summary": "reduced code generalization",
+      "input_record": "I000070207022222R02010101S00000000N00000000N",
+      "expected_output": "I0000700018111002H",
+      "actual_output": "I0000700018111002H",
+      "passed": true
+    },
+    {
+      "case_id": "fresh_20260429_0",
+      "summary": "fresh invoice occurs case",
+      "input_record": "F000000000000000N00000000N00000000N00000000N",
+      "expected_output": "F0000000000000000L",
+      "actual_output": "F0000000000000000L",
+      "passed": true
+    },
+    {
+      "case_id": "fresh_20260429_1",
+      "summary": "fresh invoice occurs case",
+      "input_record": "F000010307027373N08012881S02050992L00000000N",
+      "expected_output": "F0000100041431203H",
+      "actual_output": "F0000100041431203H",
+      "passed": true
+    },
+    {
+      "case_id": "fresh_20260429_2",
+      "summary": "fresh invoice occurs case",
+      "input_record": "F000020101009336S00000000N00000000N00000000N",
+      "expected_output": "F0000200001001301L",
+      "actual_output": "F0000200001001301L",
+      "passed": true
+    },
+    {
+      "case_id": "fresh_20260429_3",
+      "summary": "fresh invoice occurs case",
+      "input_record": "F000030104016782N00000000N00000000N00000000N",
+      "expected_output": "F0000300006712801L",
+      "actual_output": "F0000300006712801L",
+      "passed": true
+    },
+    {
+      "case_id": "fresh_20260429_4",
+      "summary": "fresh invoice occurs case",
+      "input_record": "F000040303084629N08033585N08035187R00000000N",
+      "expected_output": "F0000400081110003H",
+      "actual_output": "F0000400081110003H",
+      "passed": true
+    },
+    {
+      "case_id": "fresh_20260429_5",
+      "summary": "fresh invoice occurs case",
+      "input_record": "F000050107087851R00000000N00000000N00000000N",
+      "expected_output": "F0000500063033101H",
+      "actual_output": "F0000500063033101H",
+      "passed": true
+    }
+  ],
+  "source_compile": {
+    "ok": true,
+    "compiled_sources": [
+      "INVTOTAL.cbl",
+      "TAXRATE.cbl"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  }
+}

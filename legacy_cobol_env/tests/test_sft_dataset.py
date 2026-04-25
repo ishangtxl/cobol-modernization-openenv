@@ -1,0 +1,23 @@
+import json
+
+from legacy_cobol_env.server.task_bank import all_tasks
+from legacy_cobol_env.training.sft_dataset import build_oracle_sft_examples, dumps_jsonl
+
+
+def test_build_oracle_sft_examples_covers_all_tasks():
+    examples = build_oracle_sft_examples(all_tasks())
+
+    assert len(examples) == 6
+    assert {example["task_id"] for example in examples} == {task.task_id for task in all_tasks()}
+    assert all("def migrate" in example["completion"] for example in examples)
+    assert any(example["family_id"] == "invoice_occurs_totals" for example in examples)
+
+
+def test_dumps_jsonl_writes_one_json_object_per_line():
+    examples = build_oracle_sft_examples(all_tasks()[:1])
+    payload = dumps_jsonl(examples)
+
+    parsed = [json.loads(line) for line in payload.splitlines()]
+    assert len(parsed) == 1
+    assert parsed[0]["messages"][0]["role"] == "user"
+    assert parsed[0]["messages"][1]["role"] == "assistant"

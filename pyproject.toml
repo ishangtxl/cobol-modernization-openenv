@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openenv-legacy-cobol-submission"
+version = "0.1.0"
+description = "Root submission package for the Legacy COBOL OpenEnv workbench"
+requires-python = ">=3.10"
+dependencies = [
+    "openenv-core>=0.2.3",
+    "openai>=1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.scripts]
+server = "legacy_cobol_env.server.app:main"
+
+[tool.setuptools]
+include-package-data = true
+packages = [
+    "legacy_cobol_env",
+    "legacy_cobol_env.server",
+    "legacy_cobol_env.eval",
+    "legacy_cobol_env.training",
+    "server",
+]

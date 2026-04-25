@@ -1,0 +1,44 @@
+{
+  "policies": {
+    "blank_width": {
+      "mean_public_score": 0.17666666666666667,
+      "accepted_count": 0,
+      "task_count": 6
+    },
+    "identity": {
+      "mean_public_score": 0.15,
+      "accepted_count": 0,
+      "task_count": 6
+    },
+    "oracle-model": {
+      "mean_public_score": 1.0,
+      "accepted_count": 6,
+      "task_count": 6
+    }
+  },
+  "task_scores": {
+    "payroll_net_pay_001": {
+      "oracle_model": 1.0
+    },
+    "customer_format_001": {
+      "oracle_model": 1.0
+    },
+    "claims_eligibility_001": {
+      "oracle_model": 1.0
+    },
+    "account_status_001": {
+      "oracle_model": 1.0
+    },
+    "invoice_occurs_001": {
+      "oracle_model": 1.0
+    },
+    "date_normalization_001": {
+      "oracle_model": 1.0
+    }
+  },
+  "training_targets": [],
+  "evidence_notes": [
+    "stale rollout artifact skipped after task hardening: azure_gpt54mini_zeroshot_rollouts.json",
+    "stale rollout artifact skipped after task hardening: azure_gpt54mini_repair1_rollouts.json"
+  ]
+}

@@ -1,0 +1,205 @@
+{
+  "policies": [
+    "blank_width",
+    "identity"
+  ],
+  "task_count": 6,
+  "mean_public_score": {
+    "blank_width": 0.17666666666666667,
+    "identity": 0.15
+  },
+  "results": [
+    {
+      "policy": "identity",
+      "task_id": "payroll_net_pay_001",
+      "family_id": "decimal_copybook_payroll",
+      "visible_pass_rate": 0.0,
+      "public_score": 0.15,
+      "components": {
+        "hidden_correctness": 0.0,
+        "fresh_correctness": 0.0,
+        "interface_contract": 1.0,
+        "type_and_layout_fidelity": 0.0,
+        "anti_hardcoding": 0.0,
+        "safety": 1.0
+      },
+      "accepted": false
+    },
+    {
+      "policy": "blank_width",
+      "task_id": "payroll_net_pay_001",
+      "family_id": "decimal_copybook_payroll",
+      "visible_pass_rate": 0.0,
+      "public_score": 0.15,
+      "components": {
+        "hidden_correctness": 0.0,
+        "fresh_correctness": 0.0,
+        "interface_contract": 1.0,
+        "type_and_layout_fidelity": 0.0,
+        "anti_hardcoding": 0.0,
+        "safety": 1.0
+      },
+      "accepted": false
+    },
+    {
+      "policy": "identity",
+      "task_id": "customer_format_001",
+      "family_id": "fixed_width_customer",
+      "visible_pass_rate": 0.0,
+      "public_score": 0.15,
+      "components": {
+        "hidden_correctness": 0.0,
+        "fresh_correctness": 0.0,
+        "interface_contract": 1.0,
+        "type_and_layout_fidelity": 0.0,
+        "anti_hardcoding": 0.0,
+        "safety": 1.0
+      },
+      "accepted": false
+    },
+    {
+      "policy": "blank_width",
+      "task_id": "customer_format_001",
+      "family_id": "fixed_width_customer",
+      "visible_pass_rate": 0.0,
+      "public_score": 0.15,
+      "components": {
+        "hidden_correctness": 0.0,
+        "fresh_correctness": 0.0,
+        "interface_contract": 1.0,
+        "type_and_layout_fidelity": 0.0,
+        "anti_hardcoding": 0.0,
+        "safety": 1.0
+      },
+      "accepted": false
+    },
+    {
+      "policy": "identity",
+      "task_id": "claims_eligibility_001",
+      "family_id": "claims_eligibility_branching",
+      "visible_pass_rate": 0.0,
+      "public_score": 0.15,
+      "components": {
+        "hidden_correctness": 0.0,
+        "fresh_correctness": 0.0,
+        "interface_contract": 1.0,
+        "type_and_layout_fidelity": 0.0,
+        "anti_hardcoding": 0.0,
+        "safety": 1.0
+      },
+      "accepted": false
+    },
+    {
+      "policy": "blank_width",
+      "task_id": "claims_eligibility_001",
+      "family_id": "claims_eligibility_branching",
+      "visible_pass_rate": 0.0,
+      "public_score": 0.23,
+      "components": {
+        "hidden_correctness": 0.0,
+        "fresh_correctness": 0.0,
+        "interface_contract": 1.0,
+        "type_and_layout_fidelity": 1.0,
+        "anti_hardcoding": 0.0,
+        "safety": 1.0
+      },
+      "accepted": false
+    },
+    {
+      "policy": "identity",
+      "task_id": "account_status_001",
+      "family_id": "account_status_level88",
+      "visible_pass_rate": 0.0,
+      "public_score": 0.15,
+      "components": {
+        "hidden_correctness": 0.0,
+        "fresh_correctness": 0.0,
+        "interface_contract": 1.0,
+        "type_and_layout_fidelity": 0.0,
+        "anti_hardcoding": 0.0,
+        "safety": 1.0
+      },
+      "accepted": false
+    },
+    {
+      "policy": "blank_width",
+      "task_id": "account_status_001",
+      "family_id": "account_status_level88",
+      "visible_pass_rate": 0.0,
+      "public_score": 0.23,
+      "components": {
+        "hidden_correctness": 0.0,
+        "fresh_correctness": 0.0,
+        "interface_contract": 1.0,
+        "type_and_layout_fidelity": 1.0,
+        "anti_hardcoding": 0.0,
+        "safety": 1.0
+      },
+      "accepted": false
+    },
+    {
+      "policy": "identity",
+      "task_id": "invoice_occurs_001",
+      "family_id": "invoice_occurs_totals",
+      "visible_pass_rate": 0.0,
+      "public_score": 0.15,
+      "components": {
+        "hidden_correctness": 0.0,
+        "fresh_correctness": 0.0,
+        "interface_contract": 1.0,
+        "type_and_layout_fidelity": 0.0,
+        "anti_hardcoding": 0.0,
+        "safety": 1.0
+      },
+      "accepted": false
+    },
+    {
+      "policy": "blank_width",
+      "task_id": "invoice_occurs_001",
+      "family_id": "invoice_occurs_totals",
+      "visible_pass_rate": 0.0,
+      "public_score": 0.15,
+      "components": {
+        "hidden_correctness": 0.0,
+        "fresh_correctness": 0.0,
+        "interface_contract": 1.0,
+        "type_and_layout_fidelity": 0.0,
+        "anti_hardcoding": 0.0,
+        "safety": 1.0
+      },
+      "accepted": false
+    },
+    {
+      "policy": "identity",
+      "task_id": "date_normalization_001",
+      "family_id": "date_normalization",
+      "visible_pass_rate": 0.0,
+      "public_score": 0.15,
+      "components": {
+        "hidden_correctness": 0.0,
+        "fresh_correctness": 0.0,
+        "interface_contract": 1.0,
+        "type_and_layout_fidelity": 0.0,
+        "anti_hardcoding": 0.0,
+        "safety": 1.0
+      },
+      "accepted": false
+    },
+    {
+      "policy": "blank_width",
+      "task_id": "date_normalization_001",
+      "family_id": "date_normalization",
+      "visible_pass_rate": 0.0,
+      "public_score": 0.15,
+      "components": {
+        "hidden_correctness": 0.0,
+        "fresh_correctness": 0.0,
+        "interface_contract": 1.0,
+        "type_and_layout_fidelity": 0.0,
+        "anti_hardcoding": 0.0,
+        "safety": 1.0
+      },
+      "accepted": false
+    }
+  ]
+}

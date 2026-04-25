@@ -1,0 +1,10 @@
+.git/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+
+legacy_cobol_env/outputs/
+legacy_cobol_env/plots/
+legacy_cobol_env/.venv/

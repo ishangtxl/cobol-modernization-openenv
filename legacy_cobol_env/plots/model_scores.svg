@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="320" viewBox="0 0 760 320">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<text x="40" y="30" font-family="Arial" font-size="18" font-weight="700">Legacy COBOL OpenEnv evaluation</text>
+<line x1="48" y1="272" x2="712" y2="272" stroke="#1f2937"/>
+<line x1="48" y1="272" x2="48" y2="48" stroke="#1f2937"/>
+<rect x="68" y="232.4" width="86" height="39.6" rx="4" fill="#64748b"/>
+<text x="76" y="224.4" font-family="Arial" font-size="12">0.177</text>
+<text x="68" y="292" font-family="Arial" font-size="10">0/6 accepted</text>
+<text x="68" y="306" font-family="Arial" font-size="10">blank_width</text>
+<rect x="186" y="238.4" width="86" height="33.6" rx="4" fill="#22c55e"/>
+<text x="194" y="230.4" font-family="Arial" font-size="12">0.150</text>
+<text x="186" y="292" font-family="Arial" font-size="10">0/6 accepted</text>
+<text x="186" y="306" font-family="Arial" font-size="10">identity</text>
+<rect x="304" y="48.0" width="86" height="224.0" rx="4" fill="#2563eb"/>
+<text x="312" y="40.0" font-family="Arial" font-size="12">1.000</text>
+<text x="304" y="292" font-family="Arial" font-size="10">6/6 accepted</text>
+<text x="304" y="306" font-family="Arial" font-size="10">oracle-model</text>
+</svg>
