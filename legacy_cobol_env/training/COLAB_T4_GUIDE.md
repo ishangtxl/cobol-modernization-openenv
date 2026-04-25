@@ -74,11 +74,11 @@ Expected:
 Expected:
 
 ```text
-14 legacy_cobol_env/outputs/training/oracle_sft.jsonl
+15 legacy_cobol_env/outputs/training/oracle_sft.jsonl
 ```
 
 The default dataset includes the six task-family examples, four invoice-focused
-rows for OCCURS stride parsing and implied decimals, and four invoice repair rows
+rows for OCCURS stride parsing and implied decimals, and five invoice repair rows
 that map visible failures back to corrected code.
 
 ## 6. Dry Run The SFT Config

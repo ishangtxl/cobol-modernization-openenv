@@ -201,6 +201,30 @@ def test_repair_prompt_includes_runtime_slice_error_guidance():
     assert "use range(count) with start = 8 + idx * 9" in repair_prompt
 
 
+def test_repair_prompt_includes_decimal_to_string_guidance():
+    task = load_task(task_id="invoice_occurs_001")
+    provider = RecordingProvider(
+        responses=[
+            json.dumps(
+                {
+                    "code": "from decimal import Decimal\n\n"
+                    "def migrate(input_record: str) -> str:\n"
+                    "    amount = Decimal('12.34')\n"
+                    "    return input_record[0:6] + amount.to_string(min_precision=9) + '00L'\n"
+                }
+            ),
+            json.dumps({"code": solution_for_task(task)}),
+        ],
+    )
+
+    run_model_repair_rollout(task=task, provider=provider, max_repairs=1)
+
+    repair_prompt = provider.prompts[1]
+    assert "object has no attribute 'to_string'" in repair_prompt
+    assert "do not use Decimal.to_string" in repair_prompt
+    assert "format(int(cents), \"09d\")" in repair_prompt
+
+
 def test_invoice_repair_rollout_has_step_budget_for_diff_and_final_submission():
     task = load_task(task_id="invoice_occurs_001")
     provider = SequenceResponseProvider(

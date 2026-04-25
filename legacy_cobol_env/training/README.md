@@ -20,8 +20,8 @@ Artifact:
 The JSONL uses chat-style records with a workbench prompt as the user message
 and a JSON `{"code": "..."}` response as the assistant message.
 
-The default build writes 14 rows: six task-family oracle rows, four
-invoice-focused rows, and four invoice repair rows built from visible
+The default build writes 15 rows: six task-family oracle rows, four
+invoice-focused rows, and five invoice repair rows built from visible
 test/diff feedback.
 
 ## Current Training Target

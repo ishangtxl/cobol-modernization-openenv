@@ -169,6 +169,35 @@ def migrate(input_record: str) -> str:
     total_str = str(total.quantize(Decimal("0.01"))).zfill(9)
     return f"{invoice_id}{total_str}{item_count:02d}H"
 """,
+        """from decimal import Decimal
+
+def migrate(input_record: str) -> str:
+    record = {
+        "INVOICE-ID": input_record[0:6],
+        "ITEM-COUNT": int(input_record[6:8]),
+        "LINE-ITEMS": [
+            {
+                "ITEM-QTY": int(input_record[i + 8:i + 10]),
+                "ITEM-PRICE": Decimal(int(input_record[i + 10:i + 16])) / Decimal("100"),
+                "TAX-CODE": input_record[i + 16:i + 17]
+            }
+            for i in range(0, 36, 9)
+        ]
+    }
+    total = Decimal("0")
+    rates = {"S": Decimal("0.0725"), "R": Decimal("0.0250"), "L": Decimal("0.1000")}
+    for line_item in record["LINE-ITEMS"][:record["ITEM-COUNT"]]:
+        amount = line_item["ITEM-QTY"] * line_item["ITEM-PRICE"]
+        total += amount + amount * rates.get(line_item["TAX-CODE"], Decimal("0.0000"))
+    out_total = (total.quantize(Decimal("0.01")) * Decimal("100")).to_integral_value()
+    out_flag = "H" if total >= Decimal("1000.00") else "L"
+    return (
+        record["INVOICE-ID"]
+        + out_total.to_string(min_precision=9).zfill(9)
+        + record["ITEM-COUNT"].to_string(min_precision=2).zfill(2)
+        + out_flag
+    )
+""",
     ]
 
 

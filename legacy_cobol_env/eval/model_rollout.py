@@ -270,6 +270,11 @@ def build_runtime_error_repair_checklist(visible: dict[str, Any]) -> str:
             "- Decimal formatting error: convert monetary totals to integer cents before using :09d; "
             "for example cents = int((total * 100).quantize(Decimal(\"1\")))."
         )
+    if "object has no attribute 'to_string'" in errors:
+        lines.append(
+            "- Decimal to_string error: do not use Decimal.to_string or integer-like .to_string methods; "
+            "format fixed-width fields with format(int(cents), \"09d\") and format(count, \"02d\")."
+        )
     if "NameError: name 'Decimal' is not defined" in errors:
         lines.append("- Decimal NameError: include from decimal import Decimal at module scope if Decimal is used.")
     if "KeyError" in errors and "TAX-CODE" in errors:

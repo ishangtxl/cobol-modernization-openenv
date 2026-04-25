@@ -17,7 +17,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", default=str(OUTPUT_DIR / "oracle_sft.jsonl"))
     parser.add_argument("--invoice-focus-copies", type=int, default=4)
-    parser.add_argument("--invoice-repair-copies", type=int, default=4)
+    parser.add_argument("--invoice-repair-copies", type=int, default=5)
     args = parser.parse_args()
 
     examples = build_oracle_sft_examples(
