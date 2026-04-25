@@ -27,6 +27,29 @@ def test_extract_code_from_fenced_json_response():
     assert extract_code_from_response(response) == "def migrate(input_record: str) -> str:\n    return input_record\n"
 
 
+def test_extract_code_removes_unused_disallowed_import_from_model_response():
+    response = json.dumps(
+        {
+            "code": "def migrate(input_record: str) -> str:\n    return input_record\n\nfrom copy import deepcopy\n"
+        }
+    )
+
+    code = extract_code_from_response(response)
+
+    assert "from copy import deepcopy" not in code
+    assert "def migrate" in code
+
+
+def test_extract_code_keeps_used_disallowed_import_for_safety_check():
+    response = json.dumps(
+        {
+            "code": "from copy import deepcopy\n\n\ndef migrate(input_record: str) -> str:\n    return deepcopy(input_record)\n"
+        }
+    )
+
+    assert "from copy import deepcopy" in extract_code_from_response(response)
+
+
 def test_model_rollout_uses_provider_response_and_records_prompt():
     task = all_tasks()[0]
     provider = StaticResponseProvider(
@@ -62,6 +85,7 @@ def test_invoice_rollout_prompt_includes_output_contract():
     assert "OUT-ITEM-COUNT" in prompt
     assert "ITEM-PRICE" in prompt
     assert "TAX-CODE-KEY" in prompt
+    assert "Allowed imports: decimal, datetime, math, re, typing." in prompt
 
 
 def test_provider_factory_requires_azure_environment():
