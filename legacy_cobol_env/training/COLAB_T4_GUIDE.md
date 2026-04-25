@@ -74,12 +74,12 @@ Expected:
 Expected:
 
 ```text
-10 legacy_cobol_env/outputs/training/oracle_sft.jsonl
+14 legacy_cobol_env/outputs/training/oracle_sft.jsonl
 ```
 
-The default dataset includes the six task-family examples plus four
-invoice-focused rows for OCCURS stride parsing, implied decimals, and
-fixed-width numeric output formatting.
+The default dataset includes the six task-family examples, four invoice-focused
+rows for OCCURS stride parsing and implied decimals, and four invoice repair rows
+that map visible failures back to corrected code.
 
 ## 6. Dry Run The SFT Config
 
@@ -101,6 +101,7 @@ The T4 has only 15GB VRAM, so start with `max_seq_length=2048`.
 !PYTHONPATH=. python -m legacy_cobol_env.training.train_sft \
   --model-name Qwen/Qwen2.5-Coder-7B-Instruct \
   --max-seq-length 2048 \
+  --num-train-epochs 5 \
   --gradient-accumulation-steps 8 \
   --output-dir legacy_cobol_env/outputs/training/sft-qwen25-coder-7b-t4
 ```
@@ -111,6 +112,7 @@ If this runs out of memory, retry with:
 !PYTHONPATH=. python -m legacy_cobol_env.training.train_sft \
   --model-name Qwen/Qwen2.5-Coder-7B-Instruct \
   --max-seq-length 1536 \
+  --num-train-epochs 5 \
   --gradient-accumulation-steps 16 \
   --output-dir legacy_cobol_env/outputs/training/sft-qwen25-coder-7b-t4
 ```

@@ -23,6 +23,19 @@ def test_build_oracle_sft_examples_can_add_invoice_focus_rows():
     assert all("cents:09d" in example["completion"] for example in focus)
 
 
+def test_build_oracle_sft_examples_can_add_invoice_repair_rows():
+    examples = build_oracle_sft_examples(all_tasks(), invoice_repair_copies=2)
+    repair = [example for example in examples if example["task_id"].startswith("invoice_occurs_001_repair_")]
+
+    assert len(examples) == 8
+    assert len(repair) == 2
+    assert all("Repair the Python migration after visible test feedback" in example["prompt"] for example in repair)
+    assert all("Previous code:" in example["prompt"] for example in repair)
+    assert any("invalid format string" in example["prompt"] for example in repair)
+    assert any("OUT-TOTAL" in example["prompt"] for example in repair)
+    assert all("cents:09d" in example["completion"] for example in repair)
+
+
 def test_oracle_sft_prompt_includes_output_contract():
     examples = build_oracle_sft_examples(all_tasks())
     invoice = next(example for example in examples if example["task_id"] == "invoice_occurs_001")

@@ -5,12 +5,17 @@ from __future__ import annotations
 import json
 from typing import Iterable
 
-from legacy_cobol_env.eval.model_rollout import build_migration_prompt
+from legacy_cobol_env.eval.model_rollout import build_migration_prompt, run_model_repair_rollout
 from legacy_cobol_env.eval.oracle_solutions import solution_for_task
+from legacy_cobol_env.eval.providers import SequenceResponseProvider
 from legacy_cobol_env.server.task_bank import TaskInstance, copybook_layout_for
 
 
-def build_oracle_sft_examples(tasks: Iterable[TaskInstance], invoice_focus_copies: int = 0) -> list[dict]:
+def build_oracle_sft_examples(
+    tasks: Iterable[TaskInstance],
+    invoice_focus_copies: int = 0,
+    invoice_repair_copies: int = 0,
+) -> list[dict]:
     examples = []
     for task in tasks:
         ticket = {
@@ -38,6 +43,7 @@ def build_oracle_sft_examples(tasks: Iterable[TaskInstance], invoice_focus_copie
         examples.append({"task_id": task.task_id, "family_id": task.family_id, "prompt": prompt, "completion": completion})
         if task.task_id == "invoice_occurs_001":
             examples.extend(_invoice_focus_examples(task, prompt, completion, invoice_focus_copies))
+            examples.extend(_invoice_repair_examples(task, completion, invoice_repair_copies))
     return examples
 
 
@@ -59,6 +65,104 @@ def _invoice_focus_examples(task: TaskInstance, prompt: str, completion: str, co
             "completion": completion,
         }
         for index in range(1, max(0, copies) + 1)
+    ]
+
+
+def _invoice_repair_examples(task: TaskInstance, completion: str, copies: int) -> list[dict]:
+    seeds = _invoice_bad_repair_seeds()
+    examples = []
+    for index in range(1, max(0, copies) + 1):
+        bad_code = seeds[(index - 1) % len(seeds)]
+        provider = SequenceResponseProvider(
+            name="repair-sft",
+            responses=[
+                json.dumps({"code": bad_code}),
+                completion,
+            ],
+        )
+        trajectory = run_model_repair_rollout(task=task, provider=provider, max_repairs=1)
+        examples.append(
+            {
+                "task_id": f"{task.task_id}_repair_{index}",
+                "family_id": task.family_id,
+                "prompt": trajectory["model_turns"][1]["prompt"],
+                "completion": completion,
+            }
+        )
+    return examples
+
+
+def _invoice_bad_repair_seeds() -> list[str]:
+    return [
+        """from decimal import Decimal
+
+def migrate(input_record: str) -> str:
+    invoice_id = input_record[0:6]
+    item_count = int(input_record[6:8])
+    total = Decimal("0.00")
+    for i in range(item_count):
+        start = 8 + i * 9
+        qty = int(input_record[start:start + 2])
+        price = Decimal(input_record[start + 2:start + 8]) / Decimal("100")
+        tax_code = input_record[start + 8:start + 9]
+        rate = {"S": Decimal("0.0725"), "R": Decimal("0.0250"), "L": Decimal("0.1000")}.get(tax_code, Decimal("0.0000"))
+        total += qty * price * (Decimal("1.0000") + rate)
+    out_total = total.quantize(Decimal("0.01")).to_integral_value()
+    flag = "H" if total >= Decimal("1000.00") else "L"
+    return f"{invoice_id}{out_total:09d}{item_count:02d}{flag}"
+""",
+        """from decimal import Decimal
+
+def migrate(input_record: str) -> str:
+    invoice_id = input_record[0:6]
+    item_count = min(int(input_record[6:8]), 4)
+    total = Decimal("0.00")
+    for i in range(item_count):
+        start = 8 + i * 9
+        qty = int(input_record[start:start + 2])
+        price = Decimal(input_record[start + 2:start + 8]) / Decimal("100")
+        tax_code = input_record[start + 8:start + 9]
+        tax = {"S": Decimal("0.0725"), "R": Decimal("0.0250"), "L": Decimal("0.1000")}.get(tax_code, Decimal("0.0000"))
+        line = qty * price
+        total += line + (line * tax)
+    total_str = format(total.quantize(Decimal("0.01")), "09.2f")
+    flag = "H" if total >= Decimal("1000.00") else "L"
+    return f"{invoice_id}{total_str}{item_count:02d}{flag}"
+""",
+        """from decimal import Decimal
+
+def migrate(input_record: str) -> str:
+    invoice_id = input_record[0:6]
+    item_count = min(int(input_record[6:8]), 4)
+    total = Decimal("0.00")
+    for i in range(item_count):
+        start = 8 + i * 9
+        qty = int(input_record[start:start + 2])
+        price = Decimal(input_record[start + 2:start + 8])
+        tax_code = input_record[start + 8:start + 9]
+        rate = {"S": Decimal("0.0725"), "R": Decimal("0.0250"), "L": Decimal("0.1000")}.get(tax_code, Decimal("0.0000"))
+        total += (qty * price) * (Decimal("1.0000") + rate)
+    total_str = str(total.quantize(Decimal("0.01"))).zfill(9)
+    return f"{invoice_id}{total_str}{item_count:02d}H"
+""",
+        """from decimal import Decimal
+
+def migrate(input_record: str) -> str:
+    invoice_id = input_record[0:6]
+    item_count = min(int(input_record[6:8]), 4)
+    total = Decimal("0.00")
+    rates = {"S": Decimal("0.0725"), "R": Decimal("0.0250"), "L": Decimal("0.1000")}
+    for i in range(item_count):
+        start = 8 + i * 9
+        qty = int(input_record[start:start + 2])
+        price = Decimal(int(input_record[start + 2:start + 8])) / Decimal("100")
+        code = input_record[start + 8:start + 9]
+        line = qty * price
+        total += line + (line * rates.get(code, Decimal("0.0000")))
+    cents = int(total)
+    flag = "H" if item_count else "L"
+    return f"{invoice_id}{cents:09d}{item_count:02d}{flag}"
+""",
     ]
 
 
