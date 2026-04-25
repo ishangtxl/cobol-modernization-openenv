@@ -13,6 +13,16 @@ def test_build_oracle_sft_examples_covers_all_tasks():
     assert any(example["family_id"] == "invoice_occurs_totals" for example in examples)
 
 
+def test_build_oracle_sft_examples_can_add_invoice_focus_rows():
+    examples = build_oracle_sft_examples(all_tasks(), invoice_focus_copies=3)
+    focus = [example for example in examples if example["task_id"].startswith("invoice_occurs_001_focus_")]
+
+    assert len(examples) == 9
+    assert len(focus) == 3
+    assert all("Invoice focus checklist" in example["prompt"] for example in focus)
+    assert all("cents:09d" in example["completion"] for example in focus)
+
+
 def test_oracle_sft_prompt_includes_output_contract():
     examples = build_oracle_sft_examples(all_tasks())
     invoice = next(example for example in examples if example["task_id"] == "invoice_occurs_001")

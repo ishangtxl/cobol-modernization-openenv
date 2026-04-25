@@ -10,7 +10,7 @@ from legacy_cobol_env.eval.oracle_solutions import solution_for_task
 from legacy_cobol_env.server.task_bank import TaskInstance, copybook_layout_for
 
 
-def build_oracle_sft_examples(tasks: Iterable[TaskInstance]) -> list[dict]:
+def build_oracle_sft_examples(tasks: Iterable[TaskInstance], invoice_focus_copies: int = 0) -> list[dict]:
     examples = []
     for task in tasks:
         ticket = {
@@ -33,15 +33,33 @@ def build_oracle_sft_examples(tasks: Iterable[TaskInstance]) -> list[dict]:
             "layouts": {filename: copybook_layout_for(task, filename) for filename in task.copybooks},
             "business_rules": task.metadata["business_rules"],
         }
-        examples.append(
-            {
-                "task_id": task.task_id,
-                "family_id": task.family_id,
-                "prompt": build_migration_prompt(ticket, context),
-                "completion": json.dumps({"code": solution_for_task(task)}),
-            }
-        )
+        prompt = build_migration_prompt(ticket, context)
+        completion = json.dumps({"code": solution_for_task(task)})
+        examples.append({"task_id": task.task_id, "family_id": task.family_id, "prompt": prompt, "completion": completion})
+        if task.task_id == "invoice_occurs_001":
+            examples.extend(_invoice_focus_examples(task, prompt, completion, invoice_focus_copies))
     return examples
+
+
+def _invoice_focus_examples(task: TaskInstance, prompt: str, completion: str, copies: int) -> list[dict]:
+    focus = "\n".join(
+        [
+            "Invoice focus checklist:",
+            "- ITEM-PRICE is PIC 9(4)V99, so parse six digits as cents: Decimal(int(slice)) / Decimal(\"100\").",
+            "- TAX-CODE is the last byte of each 9-byte LINE-ITEM stride.",
+            "- OUT-TOTAL is integer cents formatted with {cents:09d}; it must not contain a decimal point or spaces.",
+            "- OUT-FLAG is H when total >= Decimal(\"1000.00\"), otherwise L.",
+        ]
+    )
+    return [
+        {
+            "task_id": f"{task.task_id}_focus_{index}",
+            "family_id": task.family_id,
+            "prompt": f"{prompt}\n\n{focus}",
+            "completion": completion,
+        }
+        for index in range(1, max(0, copies) + 1)
+    ]
 
 
 def dumps_jsonl(examples: list[dict]) -> str:
