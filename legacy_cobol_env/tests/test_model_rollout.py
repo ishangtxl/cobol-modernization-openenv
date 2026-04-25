@@ -3,7 +3,7 @@ import json
 from legacy_cobol_env.eval.model_rollout import extract_code_from_response, run_model_repair_rollout, run_model_rollout
 from legacy_cobol_env.eval.oracle_solutions import solution_for_task
 from legacy_cobol_env.eval.providers import SequenceResponseProvider, StaticResponseProvider, create_provider
-from legacy_cobol_env.server.task_bank import all_tasks
+from legacy_cobol_env.server.task_bank import all_tasks, load_task
 
 
 class RecordingProvider:
@@ -89,3 +89,21 @@ def test_repair_rollout_includes_syntax_status_when_no_case_failures():
     assert len(provider.prompts) == 2
     assert '"syntax_ok": false' in provider.prompts[1]
     assert "unterminated string literal" in provider.prompts[1]
+
+
+def test_invoice_repair_rollout_has_step_budget_for_diff_and_final_submission():
+    task = load_task(task_id="invoice_occurs_001")
+    provider = SequenceResponseProvider(
+        name="invoice-repair",
+        responses=[
+            json.dumps({"code": "def migrate(input_record: str) -> str:\n    return '0'\n"}),
+            json.dumps({"code": solution_for_task(task)}),
+        ],
+    )
+
+    trajectory = run_model_repair_rollout(task=task, provider=provider, max_repairs=1)
+
+    assert trajectory["final"]["public_score"] == 1.0
+    step_names = [step["tool_name"] for step in trajectory["steps"]]
+    assert "inspect_diff" in step_names
+    assert step_names[-1] == "submit_final"
