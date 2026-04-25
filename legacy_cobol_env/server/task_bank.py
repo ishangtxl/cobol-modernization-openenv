@@ -70,6 +70,17 @@ def field(name: str, start: int, end: int, pic: str, python_type: str = "str", *
     }
 
 
+def copybook_layout_for(task: TaskInstance, filename: str) -> dict[str, Any]:
+    copybook_layouts = task.metadata.get("copybook_layouts", {})
+    if filename in copybook_layouts:
+        return copybook_layouts[filename]
+    return {
+        "record_name": task.metadata["record_name"],
+        "total_width": task.metadata["input_width"],
+        "fields": task.metadata["copybook_layout"],
+    }
+
+
 def metadata(
     record_name: str,
     input_width: int,
@@ -81,6 +92,7 @@ def metadata(
     numeric_output_fields: list[str] | None = None,
     field_hints: dict[str, str] | None = None,
     agent_hints: list[str] | None = None,
+    copybook_layouts: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     visible_hints = agent_hints or reference_rules
     return {
@@ -96,6 +108,7 @@ def metadata(
         "fresh_seed": fresh_seed,
         "numeric_output_fields": numeric_output_fields or [],
         "field_hints": field_hints or {},
+        "copybook_layouts": copybook_layouts or {},
     }
 
 
@@ -583,10 +596,25 @@ def account_fresh(seed: int, n: int) -> list[TestCase]:
 # Family 5: OCCURS invoice table processing.
 # ---------------------------------------------------------------------------
 
+INVOICE_LINE_ITEM_LAYOUT = [
+    field("ITEM-QTY", 0, 2, "9(2)", "int"),
+    field("ITEM-PRICE", 2, 8, "9(4)V99", "Decimal", scale=2),
+    field("TAX-CODE", 8, 9, "X"),
+]
+
 INVOICE_LAYOUT = [
     field("INVOICE-ID", 0, 6, "X(6)"),
     field("ITEM-COUNT", 6, 8, "9(2)", "int"),
-    field("LINE-ITEMS", 8, 44, "OCCURS 4 TIMES", "group", occurs=4, stride=9),
+    field("LINE-ITEMS", 8, 44, "OCCURS 4 TIMES", "group", occurs=4, stride=9, children=INVOICE_LINE_ITEM_LAYOUT),
+]
+
+TAX_CODE_ENTRY_LAYOUT = [
+    field("TAX-CODE-KEY", 0, 1, "X"),
+    field("TAX-RATE", 1, 5, "9V9999", "Decimal", scale=4),
+]
+
+TAX_CODE_LAYOUT = [
+    field("TAX-CODE-ENTRIES", 0, 20, "OCCURS 4 TIMES", "group", occurs=4, stride=5, children=TAX_CODE_ENTRY_LAYOUT),
 ]
 
 INVOICE_COPYBOOK = """       01  INVOICE-RECORD.
@@ -721,6 +749,18 @@ def invoice_task() -> TaskInstance:
                 "Tax codes are resolved through the separate TAXRATE program; handle all code branches found there.",
                 "Keep the total, item count, and high/low flag in the fixed-width output layout.",
             ],
+            {
+                "INVOICE_REC.cpy": {
+                    "record_name": "INVOICE-RECORD",
+                    "total_width": 44,
+                    "fields": INVOICE_LAYOUT,
+                },
+                "TAX_CODE.cpy": {
+                    "record_name": "TAX-CODE-TABLE",
+                    "total_width": 20,
+                    "fields": TAX_CODE_LAYOUT,
+                },
+            },
         ),
     )
 

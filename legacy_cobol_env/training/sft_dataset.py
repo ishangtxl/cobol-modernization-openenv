@@ -7,7 +7,7 @@ from typing import Iterable
 
 from legacy_cobol_env.eval.model_rollout import build_migration_prompt
 from legacy_cobol_env.eval.oracle_solutions import solution_for_task
-from legacy_cobol_env.server.task_bank import TaskInstance
+from legacy_cobol_env.server.task_bank import TaskInstance, copybook_layout_for
 
 
 def build_oracle_sft_examples(tasks: Iterable[TaskInstance]) -> list[dict]:
@@ -30,14 +30,7 @@ def build_oracle_sft_examples(tasks: Iterable[TaskInstance]) -> list[dict]:
         context = {
             "cobol_files": task.cobol_files,
             "copybooks": task.copybooks,
-            "layouts": {
-                filename: {
-                    "record_name": task.metadata["record_name"],
-                    "total_width": task.metadata["input_width"],
-                    "fields": task.metadata["copybook_layout"],
-                }
-                for filename in task.copybooks
-            },
+            "layouts": {filename: copybook_layout_for(task, filename) for filename in task.copybooks},
             "business_rules": task.metadata["business_rules"],
         }
         examples.append(

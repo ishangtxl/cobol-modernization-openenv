@@ -60,6 +60,8 @@ def test_invoice_rollout_prompt_includes_output_contract():
     assert "output_layout" in prompt
     assert "OUT-TOTAL" in prompt
     assert "OUT-ITEM-COUNT" in prompt
+    assert "ITEM-PRICE" in prompt
+    assert "TAX-CODE-KEY" in prompt
 
 
 def test_provider_factory_requires_azure_environment():

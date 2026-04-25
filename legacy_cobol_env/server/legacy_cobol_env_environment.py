@@ -20,7 +20,7 @@ try:
         TerminalStepResult,
     )
     from .sandbox import EvaluationResult, evaluate_code
-    from .task_bank import generate_fresh_tests, load_task
+    from .task_bank import copybook_layout_for, generate_fresh_tests, load_task
 except ImportError:
     from models import (
         FinalSubmissionResult,
@@ -29,7 +29,7 @@ except ImportError:
         TerminalStepResult,
     )
     from server.sandbox import EvaluationResult, evaluate_code
-    from server.task_bank import generate_fresh_tests, load_task
+    from server.task_bank import copybook_layout_for, generate_fresh_tests, load_task
 
 
 MAX_STEPS = 16
@@ -276,12 +276,11 @@ class LegacyCobolEnvironment(MCPEnvironment):
             0.03,
             f"Parsed layout for {filename}.",
         )
+        layout = copybook_layout_for(self._task, filename)
         return {
             "ok": True,
             "filename": filename,
-            "record_name": self._task.metadata["record_name"],
-            "total_width": self._task.metadata["input_width"],
-            "fields": self._task.metadata["copybook_layout"],
+            **layout,
         }
 
     def _inspect_business_rules(self) -> dict[str, Any]:

@@ -147,6 +147,39 @@ def test_invoice_task_uses_multiple_source_and_copybook_artifacts():
     assert sorted(invoice.copybooks) == ["INVOICE_REC.cpy", "TAX_CODE.cpy"]
 
 
+def test_invoice_copybook_layout_exposes_occurs_child_offsets():
+    env = LegacyCobolEnvironment()
+    reset_ticket(env, task_id="invoice_occurs_001")
+
+    invoice_layout = call(env, "parse_copybook_layout", filename="INVOICE_REC.cpy")
+    line_items = next(field for field in invoice_layout["fields"] if field["name"] == "LINE-ITEMS")
+
+    assert line_items["stride"] == 9
+    assert [child["name"] for child in line_items["children"]] == [
+        "ITEM-QTY",
+        "ITEM-PRICE",
+        "TAX-CODE",
+    ]
+    assert line_items["children"][1]["start"] == 2
+    assert line_items["children"][1]["end"] == 8
+    assert line_items["children"][2]["start"] == 8
+    assert line_items["children"][2]["end"] == 9
+
+
+def test_tax_code_copybook_uses_tax_code_table_layout():
+    env = LegacyCobolEnvironment()
+    reset_ticket(env, task_id="invoice_occurs_001")
+
+    layout = call(env, "parse_copybook_layout", filename="TAX_CODE.cpy")
+
+    assert layout["record_name"] == "TAX-CODE-TABLE"
+    assert [field["name"] for field in layout["fields"]] == ["TAX-CODE-ENTRIES"]
+    assert [child["name"] for child in layout["fields"][0]["children"]] == [
+        "TAX-CODE-KEY",
+        "TAX-RATE",
+    ]
+
+
 def test_reset_ticket_exposes_output_contract_without_test_cases():
     env = LegacyCobolEnvironment()
     ticket = reset_ticket(env, task_id="invoice_occurs_001")
