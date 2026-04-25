@@ -161,7 +161,35 @@ score > 0.5233
 ideal score >= 0.8
 ```
 
-## 9. Save Artifacts
+## 9. Hosted Inference Without Training
+
+Use this path to debug prompts and repair loops before spending GPU time on
+fine-tuning. Store your Hugging Face token as a Kaggle/Colab secret or set it in
+the notebook environment; do not write it into the repo.
+
+```bash
+!HF_MODEL=Qwen/Qwen3-Coder-30B-A3B-Instruct \
+HF_TOKEN=$HF_TOKEN \
+HF_PROVIDER=auto \
+HF_TEMPERATURE=0.1 \
+HF_TOP_P=0.9 \
+HF_MAX_TOKENS=2200 \
+PYTHONPATH=. python -m legacy_cobol_env.eval.run_model_rollouts \
+  --provider hf-chat \
+  --task-id invoice_occurs_001 \
+  --max-repairs 3 \
+  --output legacy_cobol_env/outputs/evals/hf_qwen3_coder30b_invoice.json
+```
+
+Then inspect the full trajectory:
+
+```bash
+!PYTHONPATH=. python -m legacy_cobol_env.eval.inspect_rollout \
+  legacy_cobol_env/outputs/evals/hf_qwen3_coder30b_invoice.json \
+  --max-chars 10000
+```
+
+## 10. Save Artifacts
 
 Download these from the Colab file browser or copy them to Google Drive:
 

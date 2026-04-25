@@ -96,6 +96,44 @@ class HuggingFaceEndpointProvider:
         raise ValueError("HF endpoint response did not contain generated text")
 
 
+@dataclass(frozen=True)
+class HuggingFaceChatProvider:
+    model: str
+    token: str
+    provider: str | None = None
+    name: str = "hf-chat"
+    timeout_s: float = 120.0
+    max_tokens: int = 2200
+    temperature: float = 0.1
+    top_p: float = 0.9
+
+    def generate(self, prompt: str) -> str:
+        try:
+            from huggingface_hub import InferenceClient
+        except ImportError as exc:
+            raise RuntimeError("install huggingface_hub to use hf-chat provider") from exc
+
+        client = InferenceClient(
+            model=self.model,
+            provider=self.provider or "auto",
+            token=self.token,
+            timeout=self.timeout_s,
+        )
+        response = client.chat_completion(
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Return only JSON with a single code field containing a Python migrate function.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            max_tokens=self.max_tokens,
+            temperature=self.temperature,
+            top_p=self.top_p,
+        )
+        return _chat_completion_content(response)
+
+
 @dataclass
 class LocalTransformersProvider:
     model_path: str
@@ -226,6 +264,21 @@ def create_provider(kind: str, env: Mapping[str, str]) -> TextProvider:
             token=env["HF_TOKEN"],
         )
 
+    if kind == "hf-chat":
+        required = ["HF_MODEL", "HF_TOKEN"]
+        missing = [key for key in required if not env.get(key)]
+        if missing:
+            raise ValueError(f"missing Hugging Face chat configuration: {', '.join(missing)}")
+        return HuggingFaceChatProvider(
+            model=env["HF_MODEL"],
+            token=env["HF_TOKEN"],
+            provider=env.get("HF_PROVIDER"),
+            timeout_s=float(env.get("HF_TIMEOUT_S", "120")),
+            max_tokens=int(env.get("HF_MAX_TOKENS", "2200")),
+            temperature=float(env.get("HF_TEMPERATURE", "0.1")),
+            top_p=float(env.get("HF_TOP_P", "0.9")),
+        )
+
     if kind == "static":
         return StaticResponseProvider("static", env.get("STATIC_RESPONSE", '{"code": "def migrate(input_record: str) -> str:\\n    return input_record\\n"}'))
 
@@ -243,6 +296,25 @@ def create_provider(kind: str, env: Mapping[str, str]) -> TextProvider:
         )
 
     raise ValueError(f"unknown provider: {kind}")
+
+
+def _chat_completion_content(response: object) -> str:
+    choices = getattr(response, "choices", None)
+    if choices is None and isinstance(response, dict):
+        choices = response.get("choices")
+    if not choices:
+        raise ValueError("HF chat response did not contain choices")
+
+    first = choices[0]
+    message = getattr(first, "message", None)
+    if message is None and isinstance(first, dict):
+        message = first.get("message")
+    content = getattr(message, "content", None)
+    if content is None and isinstance(message, dict):
+        content = message.get("content")
+    if not isinstance(content, str):
+        raise ValueError("HF chat response did not contain message content")
+    return content
 
 
 def _post_json(url: str, payload: object, headers: dict[str, str], timeout_s: float) -> object:

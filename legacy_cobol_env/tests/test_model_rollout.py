@@ -2,7 +2,14 @@ import json
 
 from legacy_cobol_env.eval.model_rollout import extract_code_from_response, run_model_repair_rollout, run_model_rollout
 from legacy_cobol_env.eval.oracle_solutions import solution_for_task
-from legacy_cobol_env.eval.providers import LocalTransformersProvider, SequenceResponseProvider, StaticResponseProvider, create_provider
+from legacy_cobol_env.eval.providers import (
+    HuggingFaceChatProvider,
+    LocalTransformersProvider,
+    SequenceResponseProvider,
+    StaticResponseProvider,
+    _chat_completion_content,
+    create_provider,
+)
 from legacy_cobol_env.server.task_bank import all_tasks, load_task
 
 
@@ -100,6 +107,51 @@ def test_provider_factory_requires_azure_environment():
         assert "AZURE_OPENAI_ENDPOINT" in str(exc)
     else:
         raise AssertionError("expected missing Azure configuration to fail")
+
+
+def test_provider_factory_requires_hf_chat_environment():
+    try:
+        create_provider("hf-chat", {})
+    except ValueError as exc:
+        assert "HF_MODEL" in str(exc)
+        assert "HF_TOKEN" in str(exc)
+    else:
+        raise AssertionError("expected missing Hugging Face chat configuration to fail")
+
+
+def test_provider_factory_allows_hf_chat_configuration():
+    provider = create_provider(
+        "hf-chat",
+        {
+            "HF_MODEL": "Qwen/Qwen3-Coder-30B-A3B-Instruct",
+            "HF_TOKEN": "token",
+            "HF_PROVIDER": "auto",
+            "HF_MAX_TOKENS": "2048",
+            "HF_TEMPERATURE": "0.15",
+            "HF_TOP_P": "0.9",
+        },
+    )
+
+    assert isinstance(provider, HuggingFaceChatProvider)
+    assert provider.model == "Qwen/Qwen3-Coder-30B-A3B-Instruct"
+    assert provider.provider == "auto"
+    assert provider.max_tokens == 2048
+    assert provider.temperature == 0.15
+    assert provider.top_p == 0.9
+
+
+def test_chat_completion_content_accepts_object_and_dict_shapes():
+    class Message:
+        content = "object response"
+
+    class Choice:
+        message = Message()
+
+    class Response:
+        choices = [Choice()]
+
+    assert _chat_completion_content(Response()) == "object response"
+    assert _chat_completion_content({"choices": [{"message": {"content": "dict response"}}]}) == "dict response"
 
 
 def test_provider_factory_allows_local_sampling_controls():

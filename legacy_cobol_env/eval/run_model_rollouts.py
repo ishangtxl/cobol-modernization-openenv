@@ -46,7 +46,11 @@ def run_rollouts(provider_name: str, task_id: str | None = None, max_repairs: in
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--provider", default="oracle-model", choices=["oracle-model", "static", "azure-openai", "hf-endpoint", "local-transformers"])
+    parser.add_argument(
+        "--provider",
+        default="oracle-model",
+        choices=["oracle-model", "static", "azure-openai", "hf-endpoint", "hf-chat", "local-transformers"],
+    )
     parser.add_argument("--task-id")
     parser.add_argument("--max-repairs", type=int, default=0)
     parser.add_argument("--output", default=str(OUTPUT_DIR / "model_rollouts.json"))
