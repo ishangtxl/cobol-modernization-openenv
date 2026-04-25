@@ -73,6 +73,19 @@ def test_local_transformers_provider_env_accepts_base_model_path(tmp_path: Path)
     )
 
     assert provider.base_model_path == "Qwen/base"
+    assert provider.load_in_4bit is True
+
+
+def test_local_transformers_provider_can_disable_4bit(tmp_path: Path):
+    model_dir = tmp_path / "model"
+    model_dir.mkdir()
+
+    provider = create_provider(
+        "local-transformers",
+        {"LOCAL_MODEL_PATH": str(model_dir), "LOCAL_LOAD_IN_4BIT": "false"},
+    )
+
+    assert provider.load_in_4bit is False
 
 
 def test_write_dry_run_artifacts_creates_metadata_loss_and_plot(tmp_path: Path):

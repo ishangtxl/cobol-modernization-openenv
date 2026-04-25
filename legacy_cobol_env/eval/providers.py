@@ -102,6 +102,7 @@ class LocalTransformersProvider:
     base_model_path: str | None = None
     name: str = "local-transformers"
     max_new_tokens: int = 1800
+    load_in_4bit: bool = True
     _model: object | None = None
     _tokenizer: object | None = None
 
@@ -138,6 +139,7 @@ class LocalTransformersProvider:
             from transformers import AutoModelForCausalLM, AutoTokenizer
         except ImportError as exc:
             raise RuntimeError("install training/requirements-gpu.txt to use local-transformers") from exc
+        quantization_config = self._quantization_config()
         adapter_base = self._adapter_base_model_path()
         if adapter_base:
             try:
@@ -148,6 +150,7 @@ class LocalTransformersProvider:
             model = AutoModelForCausalLM.from_pretrained(
                 adapter_base,
                 device_map="auto",
+                quantization_config=quantization_config,
                 trust_remote_code=True,
             )
             model = PeftModel.from_pretrained(model, self.model_path)
@@ -156,6 +159,7 @@ class LocalTransformersProvider:
             model = AutoModelForCausalLM.from_pretrained(
                 self.model_path,
                 device_map="auto",
+                quantization_config=quantization_config,
                 trust_remote_code=True,
             )
         self._tokenizer = tokenizer
@@ -170,6 +174,19 @@ class LocalTransformersProvider:
             return None
         data = json.loads(config_path.read_text(encoding="utf-8"))
         return data.get("base_model_name_or_path")
+
+    def _quantization_config(self) -> object | None:
+        if not self.load_in_4bit:
+            return None
+        try:
+            from transformers import BitsAndBytesConfig
+        except ImportError as exc:
+            raise RuntimeError("install bitsandbytes and transformers from training/requirements-gpu.txt") from exc
+        return BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype="bfloat16",
+        )
 
 
 def create_provider(kind: str, env: Mapping[str, str]) -> TextProvider:
@@ -205,6 +222,7 @@ def create_provider(kind: str, env: Mapping[str, str]) -> TextProvider:
             model_path=env["LOCAL_MODEL_PATH"],
             base_model_path=env.get("LOCAL_BASE_MODEL_PATH"),
             max_new_tokens=int(env.get("LOCAL_MAX_NEW_TOKENS", "1800")),
+            load_in_4bit=env.get("LOCAL_LOAD_IN_4BIT", "1").lower() not in {"0", "false", "no"},
         )
 
     raise ValueError(f"unknown provider: {kind}")
