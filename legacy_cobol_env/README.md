@@ -237,6 +237,7 @@ Evaluate a trained/local checkpoint:
 
 ```bash
 LOCAL_MODEL_PATH=legacy_cobol_env/outputs/training/sft-qwen-coder-7b \
+LOCAL_BASE_MODEL_PATH=Qwen/Qwen2.5-Coder-7B-Instruct \
 PYTHONPATH=. .venv/bin/python -m legacy_cobol_env.eval.run_model_rollouts \
   --provider local-transformers \
   --task-id invoice_occurs_001 \

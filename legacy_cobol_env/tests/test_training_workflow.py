@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 from legacy_cobol_env.eval.providers import create_provider
+from legacy_cobol_env.eval.providers import LocalTransformersProvider
 from legacy_cobol_env.training.train_sft import SFTArgs, build_sft_plan, load_jsonl_rows, write_dry_run_artifacts
 
 
@@ -49,6 +50,29 @@ def test_local_transformers_provider_requires_model_path():
         assert "LOCAL_MODEL_PATH" in str(exc)
     else:
         raise AssertionError("expected missing local model path to fail")
+
+
+def test_local_transformers_provider_detects_peft_adapter_config(tmp_path: Path):
+    adapter_dir = tmp_path / "adapter"
+    adapter_dir.mkdir()
+    (adapter_dir / "adapter_config.json").write_text(json.dumps({"base_model_name_or_path": "base-model"}), encoding="utf-8")
+
+    provider = LocalTransformersProvider(model_path=str(adapter_dir))
+
+    assert provider._adapter_base_model_path() == "base-model"
+
+
+def test_local_transformers_provider_env_accepts_base_model_path(tmp_path: Path):
+    adapter_dir = tmp_path / "adapter"
+    adapter_dir.mkdir()
+    (adapter_dir / "adapter_config.json").write_text("{}", encoding="utf-8")
+
+    provider = create_provider(
+        "local-transformers",
+        {"LOCAL_MODEL_PATH": str(adapter_dir), "LOCAL_BASE_MODEL_PATH": "Qwen/base"},
+    )
+
+    assert provider.base_model_path == "Qwen/base"
 
 
 def test_write_dry_run_artifacts_creates_metadata_loss_and_plot(tmp_path: Path):

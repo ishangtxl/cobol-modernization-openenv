@@ -3,6 +3,8 @@
 This directory contains local preparation code for the training phase. It does
 not require GPU access.
 
+For Google Colab T4, follow `COLAB_T4_GUIDE.md`.
+
 ## Current Warm-Start Data
 
 Generate oracle SFT examples:

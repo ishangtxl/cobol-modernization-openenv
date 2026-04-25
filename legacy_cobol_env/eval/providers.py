@@ -6,6 +6,7 @@ import json
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Mapping, Protocol
 
 
@@ -98,6 +99,7 @@ class HuggingFaceEndpointProvider:
 @dataclass
 class LocalTransformersProvider:
     model_path: str
+    base_model_path: str | None = None
     name: str = "local-transformers"
     max_new_tokens: int = 1800
     _model: object | None = None
@@ -136,15 +138,38 @@ class LocalTransformersProvider:
             from transformers import AutoModelForCausalLM, AutoTokenizer
         except ImportError as exc:
             raise RuntimeError("install training/requirements-gpu.txt to use local-transformers") from exc
-        tokenizer = AutoTokenizer.from_pretrained(self.model_path, trust_remote_code=True)
-        model = AutoModelForCausalLM.from_pretrained(
-            self.model_path,
-            device_map="auto",
-            trust_remote_code=True,
-        )
+        adapter_base = self._adapter_base_model_path()
+        if adapter_base:
+            try:
+                from peft import PeftModel
+            except ImportError as exc:
+                raise RuntimeError("install peft from training/requirements-gpu.txt to load LoRA adapters") from exc
+            tokenizer = AutoTokenizer.from_pretrained(self.model_path, trust_remote_code=True)
+            model = AutoModelForCausalLM.from_pretrained(
+                adapter_base,
+                device_map="auto",
+                trust_remote_code=True,
+            )
+            model = PeftModel.from_pretrained(model, self.model_path)
+        else:
+            tokenizer = AutoTokenizer.from_pretrained(self.model_path, trust_remote_code=True)
+            model = AutoModelForCausalLM.from_pretrained(
+                self.model_path,
+                device_map="auto",
+                trust_remote_code=True,
+            )
         self._tokenizer = tokenizer
         self._model = model
         return tokenizer, model
+
+    def _adapter_base_model_path(self) -> str | None:
+        if self.base_model_path:
+            return self.base_model_path
+        config_path = Path(self.model_path) / "adapter_config.json"
+        if not config_path.exists():
+            return None
+        data = json.loads(config_path.read_text(encoding="utf-8"))
+        return data.get("base_model_name_or_path")
 
 
 def create_provider(kind: str, env: Mapping[str, str]) -> TextProvider:
@@ -178,6 +203,7 @@ def create_provider(kind: str, env: Mapping[str, str]) -> TextProvider:
             raise ValueError("missing local Transformers configuration: LOCAL_MODEL_PATH")
         return LocalTransformersProvider(
             model_path=env["LOCAL_MODEL_PATH"],
+            base_model_path=env.get("LOCAL_BASE_MODEL_PATH"),
             max_new_tokens=int(env.get("LOCAL_MAX_NEW_TOKENS", "1800")),
         )
 
