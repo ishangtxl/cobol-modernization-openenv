@@ -86,6 +86,8 @@ def test_invoice_rollout_prompt_includes_output_contract():
     assert "ITEM-PRICE" in prompt
     assert "TAX-CODE-KEY" in prompt
     assert "Allowed imports: decimal, datetime, math, re, typing." in prompt
+    assert "PIC fields with V use an implied decimal point" in prompt
+    assert "fixed-width numeric outputs are digits only" in prompt
 
 
 def test_provider_factory_requires_azure_environment():

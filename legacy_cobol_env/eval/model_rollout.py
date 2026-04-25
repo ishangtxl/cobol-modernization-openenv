@@ -14,6 +14,10 @@ from legacy_cobol_env.server.task_bank import TaskInstance
 
 
 ALLOWED_IMPORT_TEXT = ", ".join(name for name in ["decimal", "datetime", "math", "re", "typing"] if name in ALLOWED_IMPORTS)
+COBOL_NUMERIC_RULE = (
+    "PIC fields with V use an implied decimal point: parse them by integer digits and scale; "
+    "fixed-width numeric outputs are digits only, zero-padded to their field length, with no decimal point or spaces."
+)
 
 
 def extract_code_from_response(response: str) -> str:
@@ -203,6 +207,7 @@ def build_migration_prompt(ticket: dict[str, Any], context: dict[str, Any]) -> s
             "Return only JSON in this shape: {\"code\": \"...python source...\"}.",
             "The Python source must define migrate(input_record: str) -> str.",
             f"Allowed imports: {ALLOWED_IMPORT_TEXT}. Do not import any other modules.",
+            COBOL_NUMERIC_RULE,
             "Returned records must match output_width exactly; never append newline characters.",
             f"Ticket:\n{json.dumps(ticket, indent=2)}",
             f"COBOL files:\n{json.dumps(context['cobol_files'], indent=2)}",
@@ -226,6 +231,7 @@ def build_repair_prompt(
             "Return only JSON in this shape: {\"code\": \"...python source...\"}.",
             "The Python source must define migrate(input_record: str) -> str.",
             f"Allowed imports: {ALLOWED_IMPORT_TEXT}. Do not import any other modules.",
+            COBOL_NUMERIC_RULE,
             "Returned records must match output_width exactly; never append newline characters.",
             f"Ticket:\n{json.dumps(ticket, indent=2)}",
             f"COBOL files:\n{json.dumps(context['cobol_files'], indent=2)}",

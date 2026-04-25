@@ -20,6 +20,8 @@ def test_oracle_sft_prompt_includes_output_contract():
     assert "output_layout" in invoice["prompt"]
     assert "OUT-TOTAL" in invoice["prompt"]
     assert "OUT-ITEM-COUNT" in invoice["prompt"]
+    assert "PIC fields with V use an implied decimal point" in invoice["prompt"]
+    assert "fixed-width numeric outputs are digits only" in invoice["prompt"]
 
 
 def test_oracle_sft_prompt_includes_invoice_occurs_child_offsets():
