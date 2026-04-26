@@ -20,11 +20,18 @@ def main() -> None:
     oracle_model = _load_current_rollout(OUTPUT_DIR / "oracle_model_rollouts.json", evidence_notes)
     zeroshot = _load_current_rollout(OUTPUT_DIR / "azure_gpt54mini_zeroshot_rollouts.json", evidence_notes)
     repair = _load_current_rollout(OUTPUT_DIR / "azure_gpt54mini_repair1_rollouts.json", evidence_notes)
+    trained = _load_current_rollout(
+        OUTPUT_DIR / "local_sft_invoice_rollout.json",
+        evidence_notes,
+        allow_partial=True,
+        label="trained local checkpoint",
+    )
     summary = build_score_summary(
         baseline,
         zeroshot=zeroshot,
         repair=repair,
         oracle_model=oracle_model,
+        trained=trained,
         evidence_notes=evidence_notes,
     )
 
@@ -35,18 +42,23 @@ def main() -> None:
     print(json.dumps(summary["policies"], indent=2))
 
 
-def _load_current_rollout(path: Path, evidence_notes: list[str]) -> dict | None:
+def _load_current_rollout(
+    path: Path,
+    evidence_notes: list[str],
+    allow_partial: bool = False,
+    label: str | None = None,
+) -> dict | None:
     if not path.exists():
-        evidence_notes.append(f"missing rollout artifact: {path.name}")
+        evidence_notes.append(f"missing {label or 'rollout'} artifact: {path.name}")
         return None
     artifact = load_json(path)
-    if _matches_current_task_artifacts(artifact):
+    if _matches_current_task_artifacts(artifact, allow_partial=allow_partial):
         return artifact
     evidence_notes.append(f"stale rollout artifact skipped after task hardening: {path.name}")
     return None
 
 
-def _matches_current_task_artifacts(artifact: dict) -> bool:
+def _matches_current_task_artifacts(artifact: dict, allow_partial: bool = False) -> bool:
     current = {
         task.task_id: {
             "files": sorted(task.cobol_files),
@@ -55,7 +67,9 @@ def _matches_current_task_artifacts(artifact: dict) -> bool:
         for task in all_tasks()
     }
     trajectories = artifact.get("trajectories", [])
-    if len(trajectories) != len(current):
+    if not trajectories:
+        return False
+    if not allow_partial and len(trajectories) != len(current):
         return False
     for trajectory in trajectories:
         task_id = trajectory.get("task_id")

@@ -34,9 +34,42 @@ def test_score_summary_identifies_visible_pass_hidden_failures():
     summary = build_score_summary(baseline, zeroshot, repair)
 
     assert summary["policies"]["gpt-5.4-mini + repair1"]["mean_public_score"] == 0.92055
+    assert summary["task_scores"]["invoice_occurs_001"]["identity"] == 0.15
     assert summary["task_scores"]["invoice_occurs_001"]["repair1"] == 0.5233
     assert summary["training_targets"][0]["task_id"] == "invoice_occurs_001"
     assert summary["training_targets"][0]["reason"] == "visible-pass-hidden-fresh-gap"
+
+
+def test_score_summary_includes_trained_rollout_and_judge_table():
+    baseline = {
+        "created_at": "2026-04-26T00:00:00+00:00",
+        "mean_public_score": {"identity": 0.15},
+        "results": [{"task_id": "invoice_occurs_001", "policy": "identity", "public_score": 0.15}],
+    }
+    trained = {
+        "provider": "local-transformers",
+        "model_name": "Qwen/Qwen2.5-Coder-7B-Instruct",
+        "rollout_mode": "codegen_assisted",
+        "created_at": "2026-04-26T01:00:00+00:00",
+        "mean_public_score": 0.83,
+        "accepted_count": 1,
+        "task_count": 1,
+        "trajectories": [
+            {
+                "task_id": "invoice_occurs_001",
+                "final": {"public_score": 0.83, "accepted": True, "components": {}},
+            }
+        ],
+    }
+
+    summary = build_score_summary(baseline, trained=trained, evidence_notes=["missing zero-shot"])
+
+    assert summary["policies"]["trained-local-transformers"]["mean_public_score"] == 0.83
+    assert summary["policies"]["trained-local-transformers"]["role"] == "trained"
+    assert summary["task_scores"]["invoice_occurs_001"]["trained"] == 0.83
+    assert summary["judge_table"][-1]["policy"] == "trained-local-transformers"
+    assert summary["judge_table"][-1]["invoice_public_score"] == 0.83
+    assert summary["evidence_notes"] == ["missing zero-shot"]
 
 
 def test_score_plot_writes_svg(tmp_path: Path):

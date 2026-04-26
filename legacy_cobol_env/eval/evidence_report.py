@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from datetime import UTC, datetime
 from typing import Any
 
 
@@ -12,6 +13,7 @@ def build_score_summary(
     zeroshot: dict[str, Any] | None = None,
     repair: dict[str, Any] | None = None,
     oracle_model: dict[str, Any] | None = None,
+    trained: dict[str, Any] | None = None,
     evidence_notes: list[str] | None = None,
 ) -> dict[str, Any]:
     baseline_task_count = baseline.get("task_count") or len({row["task_id"] for row in baseline["results"]})
@@ -22,6 +24,8 @@ def build_score_summary(
                 1 for row in baseline["results"] if row["policy"] == name and row.get("accepted")
             ),
             "task_count": baseline_task_count,
+            "role": "deterministic_baseline",
+            "created_at": baseline.get("created_at"),
         }
         for name, score in baseline["mean_public_score"].items()
     }
@@ -30,21 +34,43 @@ def build_score_summary(
             "mean_public_score": oracle_model["mean_public_score"],
             "accepted_count": oracle_model["accepted_count"],
             "task_count": oracle_model["task_count"],
+            "role": "oracle_sanity",
+            "created_at": oracle_model.get("created_at"),
+            "rollout_mode": oracle_model.get("rollout_mode", "codegen_assisted"),
         }
     if zeroshot is not None:
         policies["gpt-5.4-mini zero-shot"] = {
             "mean_public_score": zeroshot["mean_public_score"],
             "accepted_count": zeroshot["accepted_count"],
             "task_count": zeroshot["task_count"],
+            "role": "current_model_baseline",
+            "created_at": zeroshot.get("created_at"),
+            "rollout_mode": zeroshot.get("rollout_mode", "codegen_assisted"),
         }
     if repair is not None:
         policies["gpt-5.4-mini + repair1"] = {
             "mean_public_score": repair["mean_public_score"],
             "accepted_count": repair["accepted_count"],
             "task_count": repair["task_count"],
+            "role": "current_model_repair",
+            "created_at": repair.get("created_at"),
+            "rollout_mode": repair.get("rollout_mode", "codegen_assisted"),
+        }
+    if trained is not None:
+        trained_name = f"trained-{trained.get('provider', 'model')}"
+        policies[trained_name] = {
+            "mean_public_score": trained["mean_public_score"],
+            "accepted_count": trained["accepted_count"],
+            "task_count": trained["task_count"],
+            "role": "trained",
+            "created_at": trained.get("created_at"),
+            "model_name": trained.get("model_name"),
+            "rollout_mode": trained.get("rollout_mode", "codegen_assisted"),
         }
 
     task_scores: dict[str, dict[str, Any]] = {}
+    for row in baseline["results"]:
+        task_scores.setdefault(row["task_id"], {})[row["policy"]] = row.get("public_score")
     if oracle_model is not None:
         for trajectory in oracle_model["trajectories"]:
             task_scores.setdefault(trajectory["task_id"], {})["oracle_model"] = trajectory["final"]["public_score"]
@@ -55,6 +81,10 @@ def build_score_summary(
         for trajectory in repair["trajectories"]:
             task_scores.setdefault(trajectory["task_id"], {})["repair1"] = trajectory["final"]["public_score"]
             task_scores[trajectory["task_id"]]["repair1_accepted"] = trajectory["final"]["accepted"]
+    if trained is not None:
+        for trajectory in trained["trajectories"]:
+            task_scores.setdefault(trajectory["task_id"], {})["trained"] = trajectory["final"]["public_score"]
+            task_scores[trajectory["task_id"]]["trained_accepted"] = trajectory["final"]["accepted"]
 
     training_targets = []
     if repair is not None:
@@ -77,11 +107,38 @@ def build_score_summary(
                 )
 
     return {
+        "generated_at": datetime.now(UTC).isoformat(),
         "policies": policies,
         "task_scores": task_scores,
+        "judge_table": _judge_table(policies, task_scores),
         "training_targets": training_targets,
         "evidence_notes": evidence_notes or [],
     }
+
+
+def _judge_table(policies: dict[str, dict[str, Any]], task_scores: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
+    rows = []
+    invoice_scores = task_scores.get("invoice_occurs_001", {})
+    invoice_keys = {
+        "oracle-model": "oracle_model",
+        "gpt-5.4-mini zero-shot": "zeroshot",
+        "gpt-5.4-mini + repair1": "repair1",
+    }
+    for policy, data in policies.items():
+        invoice_key = invoice_keys.get(policy, policy)
+        if policy.startswith("trained-"):
+            invoice_key = "trained"
+        rows.append(
+            {
+                "policy": policy,
+                "role": data.get("role"),
+                "mean_public_score": data["mean_public_score"],
+                "accepted_count": data["accepted_count"],
+                "task_count": data["task_count"],
+                "invoice_public_score": invoice_scores.get(invoice_key),
+            }
+        )
+    return rows
 
 
 def write_score_plot(summary: dict[str, Any], path: Path) -> None:

@@ -8,8 +8,10 @@ from __future__ import annotations
 
 import argparse
 import json
+import time
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
+from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
@@ -52,11 +54,13 @@ def load_jsonl_rows(path: Path) -> list[dict[str, Any]]:
 
 
 def build_sft_plan(args: SFTArgs) -> dict[str, Any]:
-    rows = load_jsonl_rows(Path(args.dataset))
+    dataset_path = Path(args.dataset)
+    rows = load_jsonl_rows(dataset_path)
     families = sorted({row.get("family_id", "unknown") for row in rows})
     return {
         **asdict(args),
         "dataset_examples": len(rows),
+        "dataset_sha256": sha256(dataset_path.read_bytes()).hexdigest(),
         "families": families,
         "uses_lora": args.lora_rank > 0,
         "training_dependencies": ["torch", "transformers", "datasets", "peft", "trl", "accelerate"],
@@ -65,9 +69,9 @@ def build_sft_plan(args: SFTArgs) -> dict[str, Any]:
 
 def write_dry_run_artifacts(plan: dict[str, Any], output_root: Path) -> dict[str, Path]:
     output_root.mkdir(parents=True, exist_ok=True)
-    metadata_path = output_root / "sft_run_metadata.json"
-    loss_csv_path = output_root / "sft_loss.csv"
-    loss_plot_path = output_root / "sft_loss.svg"
+    metadata_path = output_root / "dry_run_metadata.json"
+    loss_csv_path = output_root / "dry_run_loss.csv"
+    loss_plot_path = output_root / "dry_run_loss.svg"
 
     metadata = {
         "status": "dry_run",
@@ -80,6 +84,51 @@ def write_dry_run_artifacts(plan: dict[str, Any], output_root: Path) -> dict[str
     loss_csv_path.write_text("step,loss\n" + "\n".join(f"{step},{loss}" for step, loss in loss_rows) + "\n", encoding="utf-8")
     _write_loss_svg(loss_rows, loss_plot_path)
     return {"metadata": metadata_path, "loss_csv": loss_csv_path, "loss_plot": loss_plot_path}
+
+
+def write_completed_training_artifacts(
+    plan: dict[str, Any],
+    output_root: Path,
+    log_history: list[dict[str, Any]],
+    runtime_s: float,
+) -> dict[str, Path]:
+    output_root.mkdir(parents=True, exist_ok=True)
+    metadata_path = output_root / "sft_run_metadata.json"
+    loss_csv_path = output_root / "sft_loss.csv"
+    loss_plot_path = output_root / "sft_loss.svg"
+
+    loss_rows = _loss_rows_from_history(log_history)
+    final_loss = loss_rows[-1][1] if loss_rows else None
+    metadata = {
+        "status": "completed",
+        "created_at": datetime.now(UTC).isoformat(),
+        "training_runtime_s": round(runtime_s, 3),
+        "final_loss": final_loss,
+        "loss_steps": len(loss_rows),
+        "plan": plan,
+        "artifacts": {
+            "checkpoint_dir": plan["output_dir"],
+            "loss_csv": str(loss_csv_path),
+            "loss_plot": str(loss_plot_path),
+        },
+    }
+    metadata_path.write_text(json.dumps(metadata, indent=2), encoding="utf-8")
+    loss_csv_path.write_text(
+        "step,loss\n" + "\n".join(f"{step},{loss}" for step, loss in loss_rows) + "\n",
+        encoding="utf-8",
+    )
+    _write_loss_svg(loss_rows or [(0, 0.0)], loss_plot_path)
+    return {"metadata": metadata_path, "loss_csv": loss_csv_path, "loss_plot": loss_plot_path}
+
+
+def _loss_rows_from_history(log_history: list[dict[str, Any]]) -> list[tuple[int, float]]:
+    rows = []
+    for index, item in enumerate(log_history, start=1):
+        if "loss" not in item:
+            continue
+        step = int(item.get("step") or index)
+        rows.append((step, float(item["loss"])))
+    return rows
 
 
 def _write_loss_svg(rows: list[tuple[int, float]], path: Path) -> None:
@@ -109,6 +158,7 @@ def _write_loss_svg(rows: list[tuple[int, float]], path: Path) -> None:
 
 def run_sft_training(args: SFTArgs) -> None:
     plan = build_sft_plan(args)
+    started = time.perf_counter()
     try:
         from datasets import load_dataset
         from peft import LoraConfig
@@ -180,6 +230,14 @@ def run_sft_training(args: SFTArgs) -> None:
     trainer.train()
     trainer.save_model(args.output_dir)
     tokenizer.save_pretrained(args.output_dir)
+    runtime_s = time.perf_counter() - started
+    output_root = Path(args.output_dir).parent
+    write_completed_training_artifacts(
+        plan=plan,
+        output_root=output_root,
+        log_history=list(getattr(trainer.state, "log_history", [])),
+        runtime_s=runtime_s,
+    )
 
 
 def parse_args() -> argparse.Namespace:

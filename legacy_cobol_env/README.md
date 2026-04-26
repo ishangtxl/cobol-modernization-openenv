@@ -18,6 +18,7 @@ tags:
 An OpenEnv environment where an agent acts like a legacy modernization engineer. The agent receives a migration ticket, inspects COBOL and copybooks through tools, writes Python, runs visible tests, studies diffs, and submits a final migration scored on hidden and fresh tests.
 
 The current build includes six judge-facing task families covering payroll, customer records, insurance claims, banking account status, invoice OCCURS tables, and legacy date normalization.
+The package pins `openenv-core==0.2.3`, the current OpenEnv release verified for this submission build.
 
 ## Environment Overview
 
@@ -40,7 +41,7 @@ def migrate(input_record: str) -> str:
 ```
 
 The final score combines hidden correctness, fresh generated tests, interface checks, layout fidelity, anti-hardcoding, and safety.
-Episodes are capped at 12 tool steps. The next action returns a terminal no-op reward of `0.0`, and all post-terminal mutations are blocked.
+Episodes are capped at 24 tool steps. The next action returns a terminal no-op reward of `0.0`, and all post-terminal mutations are blocked.
 
 ## Quick Start
 
@@ -153,7 +154,9 @@ Artifact:
 Run provider-backed model rollouts:
 
 ```bash
-PYTHONPATH=. .venv/bin/python -m legacy_cobol_env.eval.run_model_rollouts --provider oracle-model
+PYTHONPATH=. .venv/bin/python -m legacy_cobol_env.eval.run_model_rollouts \
+  --provider oracle-model \
+  --rollout-mode codegen_assisted
 ```
 
 Supported local/provider modes:
@@ -166,6 +169,18 @@ Supported local/provider modes:
 Artifact:
 
 - `outputs/evals/oracle_model_rollouts.json`
+
+The default `codegen_assisted` rollout reads the task artifacts before asking
+the model for migration code. For qualitative tool-use evidence, run a provider
+that returns tool-call JSON with:
+
+```bash
+PYTHONPATH=. .venv/bin/python -m legacy_cobol_env.eval.run_model_rollouts \
+  --provider hf-chat \
+  --rollout-mode tool_choice \
+  --task-id invoice_occurs_001 \
+  --output legacy_cobol_env/outputs/evals/tool_choice_invoice_rollout.json
+```
 
 Run the compiler-backed invoice oracle check:
 
@@ -194,7 +209,10 @@ Current regenerated local evidence:
 | deterministic blank width | 0.1767 | 0 / 6 |
 | `oracle-model` plumbing check | 1.0000 | 6 / 6 |
 
-The previous Azure `gpt-5.4-mini` artifacts are kept for comparison, but `run_evidence_report` skips them because they were produced before the invoice task was hardened into a multi-file tax-code task. Rerun live Azure rollouts after local gates pass.
+The previous Azure `gpt-5.4-mini` artifacts are kept for historical comparison,
+but `run_evidence_report` skips them because they were produced before the
+invoice task was hardened into a multi-file tax-code task. Rerun live Azure or
+Hugging Face rollouts before claiming current model improvement.
 
 Historical Azure artifacts:
 
@@ -239,6 +257,12 @@ PYTHONPATH=. .venv/bin/python -m legacy_cobol_env.training.train_sft --dry-run
 
 Dry-run artifacts:
 
+- `outputs/training/dry_run_metadata.json`
+- `outputs/training/dry_run_loss.csv`
+- `outputs/training/dry_run_loss.svg`
+
+Real GPU training writes judge-facing artifacts only after `train_sft` completes:
+
 - `outputs/training/sft_run_metadata.json`
 - `outputs/training/sft_loss.csv`
 - `outputs/training/sft_loss.svg`
@@ -267,19 +291,21 @@ Implemented:
 - Deterministic baseline evaluation harness
 - Oracle sanity solutions and JSON workbench trajectories
 - Provider-backed model rollout harness for Azure OpenAI and Hugging Face endpoints
+- Tool-choice rollout harness for evaluating whether a model chooses workbench tools from the initial ticket
 - Compiler-backed GnuCOBOL oracle check for the hard invoice task
 - Root Dockerfile, root `inference.py`, root `openenv.yaml`, and root README for submission gates
 - `legacy_cobol_env/Dockerfile` and `legacy_cobol_env/inference.py` for submitting `legacy_cobol_env` directly as the Space/repo root
 - Typed project action, observation, reward, and state schemas surfaced at `/schema`
 - Persistent REST `/reset`, `/step`, and `/state` semantics for the current episode
 - Max-step and post-terminal no-op enforcement
-- Score summary, model-score plot, oracle SFT warm-start dataset, and SFT dry-run artifacts
+- Score summary, model-score plot, oracle SFT warm-start dataset, clearly labeled dry-run artifacts, and completed-run metadata support
 
-Next:
+External submission gates still to complete:
 
-- Rerun Azure `gpt-5.4-mini` zero-shot and repair baselines against the hardened invoice task
+- Rerun Azure/Hugging Face zero-shot and repair baselines against the hardened invoice task
 - Run SFT on GPU, then evaluate invoice before deciding whether RL/GRPO is needed
-- Push to Hugging Face Spaces with `openenv push`
+- Push to Hugging Face Spaces with `openenv push` and add the Space URL here
+- Add a mini-video, Hugging Face post, or slide link here
 
 ## Safety Note
 

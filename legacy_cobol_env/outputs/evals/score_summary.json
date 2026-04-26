@@ -1,44 +1,91 @@
 {
+  "generated_at": "2026-04-26T06:45:12.038954+00:00",
   "policies": {
     "blank_width": {
       "mean_public_score": 0.17666666666666667,
       "accepted_count": 0,
-      "task_count": 6
+      "task_count": 6,
+      "role": "deterministic_baseline",
+      "created_at": "2026-04-26T06:43:43.050618+00:00"
     },
     "identity": {
       "mean_public_score": 0.15,
       "accepted_count": 0,
-      "task_count": 6
+      "task_count": 6,
+      "role": "deterministic_baseline",
+      "created_at": "2026-04-26T06:43:43.050618+00:00"
     },
     "oracle-model": {
       "mean_public_score": 1.0,
       "accepted_count": 6,
-      "task_count": 6
+      "task_count": 6,
+      "role": "oracle_sanity",
+      "created_at": "2026-04-26T06:43:42.503559+00:00",
+      "rollout_mode": "codegen_assisted"
     }
   },
   "task_scores": {
     "payroll_net_pay_001": {
+      "identity": 0.15,
+      "blank_width": 0.15,
       "oracle_model": 1.0
     },
     "customer_format_001": {
+      "identity": 0.15,
+      "blank_width": 0.15,
       "oracle_model": 1.0
     },
     "claims_eligibility_001": {
+      "identity": 0.15,
+      "blank_width": 0.23,
       "oracle_model": 1.0
     },
     "account_status_001": {
+      "identity": 0.15,
+      "blank_width": 0.23,
       "oracle_model": 1.0
     },
     "invoice_occurs_001": {
+      "identity": 0.15,
+      "blank_width": 0.15,
       "oracle_model": 1.0
     },
     "date_normalization_001": {
+      "identity": 0.15,
+      "blank_width": 0.15,
       "oracle_model": 1.0
     }
   },
+  "judge_table": [
+    {
+      "policy": "blank_width",
+      "role": "deterministic_baseline",
+      "mean_public_score": 0.17666666666666667,
+      "accepted_count": 0,
+      "task_count": 6,
+      "invoice_public_score": 0.15
+    },
+    {
+      "policy": "identity",
+      "role": "deterministic_baseline",
+      "mean_public_score": 0.15,
+      "accepted_count": 0,
+      "task_count": 6,
+      "invoice_public_score": 0.15
+    },
+    {
+      "policy": "oracle-model",
+      "role": "oracle_sanity",
+      "mean_public_score": 1.0,
+      "accepted_count": 6,
+      "task_count": 6,
+      "invoice_public_score": 1.0
+    }
+  ],
   "training_targets": [],
   "evidence_notes": [
     "stale rollout artifact skipped after task hardening: azure_gpt54mini_zeroshot_rollouts.json",
-    "stale rollout artifact skipped after task hardening: azure_gpt54mini_repair1_rollouts.json"
+    "stale rollout artifact skipped after task hardening: azure_gpt54mini_repair1_rollouts.json",
+    "missing trained local checkpoint artifact: local_sft_invoice_rollout.json"
   ]
 }

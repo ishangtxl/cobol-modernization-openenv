@@ -1,9 +1,16 @@
 import json
+from hashlib import sha256
 from pathlib import Path
 
 from legacy_cobol_env.eval.providers import create_provider
 from legacy_cobol_env.eval.providers import LocalTransformersProvider
-from legacy_cobol_env.training.train_sft import SFTArgs, build_sft_plan, load_jsonl_rows, write_dry_run_artifacts
+from legacy_cobol_env.training.train_sft import (
+    SFTArgs,
+    build_sft_plan,
+    load_jsonl_rows,
+    write_completed_training_artifacts,
+    write_dry_run_artifacts,
+)
 
 
 def test_build_sft_plan_reads_dataset_without_gpu_dependencies(tmp_path: Path):
@@ -26,6 +33,7 @@ def test_build_sft_plan_reads_dataset_without_gpu_dependencies(tmp_path: Path):
     plan = build_sft_plan(SFTArgs(dataset=str(dataset), output_dir=str(tmp_path / "out")))
 
     assert plan["dataset_examples"] == 1
+    assert plan["dataset_sha256"] == sha256(dataset.read_bytes()).hexdigest()
     assert plan["model_name"]
     assert plan["uses_lora"] is True
     assert plan["output_dir"] == str(tmp_path / "out")
@@ -110,5 +118,39 @@ def test_write_dry_run_artifacts_creates_metadata_loss_and_plot(tmp_path: Path):
     artifacts = write_dry_run_artifacts(plan, tmp_path)
 
     assert artifacts["metadata"].exists()
+    assert "dry_run" in artifacts["metadata"].name
     assert artifacts["loss_csv"].read_text(encoding="utf-8").splitlines()[0] == "step,loss"
+    assert artifacts["loss_plot"].read_text(encoding="utf-8").startswith("<svg")
+
+
+def test_write_completed_training_artifacts_uses_real_loss_history(tmp_path: Path):
+    plan = {
+        "dataset_examples": 15,
+        "dataset_sha256": "abc123",
+        "model_name": "Qwen/Qwen2.5-Coder-7B-Instruct",
+        "output_dir": str(tmp_path / "sft-qwen"),
+    }
+    log_history = [
+        {"step": 1, "loss": 1.25},
+        {"step": 2, "learning_rate": 0.0001},
+        {"step": 3, "loss": 0.75},
+    ]
+
+    artifacts = write_completed_training_artifacts(
+        plan=plan,
+        output_root=tmp_path,
+        log_history=log_history,
+        runtime_s=42.5,
+    )
+
+    metadata = json.loads(artifacts["metadata"].read_text(encoding="utf-8"))
+    assert metadata["status"] == "completed"
+    assert metadata["final_loss"] == 0.75
+    assert metadata["training_runtime_s"] == 42.5
+    assert metadata["plan"]["dataset_sha256"] == "abc123"
+    assert artifacts["loss_csv"].read_text(encoding="utf-8").splitlines() == [
+        "step,loss",
+        "1,1.25",
+        "3,0.75",
+    ]
     assert artifacts["loss_plot"].read_text(encoding="utf-8").startswith("<svg")
