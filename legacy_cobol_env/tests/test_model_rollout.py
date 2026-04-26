@@ -291,6 +291,29 @@ def test_repair_prompt_includes_decimal_to_string_guidance():
     assert "format(int(cents), \"09d\")" in repair_prompt
 
 
+def test_repair_prompt_includes_slice_object_callable_guidance():
+    task = load_task(task_id="invoice_occurs_001")
+    provider = RecordingProvider(
+        responses=[
+            json.dumps(
+                {
+                    "code": "def migrate(input_record: str) -> str:\n"
+                    "    invoice_id = slice(0, 6)\n"
+                    "    return invoice_id(input_record)\n"
+                }
+            ),
+            json.dumps({"code": solution_for_task(task)}),
+        ],
+    )
+
+    run_model_repair_rollout(task=task, provider=provider, max_repairs=1)
+
+    repair_prompt = provider.prompts[1]
+    assert "'slice' object is not callable" in repair_prompt
+    assert "do not call slice objects" in repair_prompt
+    assert "input_record[start:end]" in repair_prompt
+
+
 def test_invoice_repair_rollout_has_step_budget_for_diff_and_final_submission():
     task = load_task(task_id="invoice_occurs_001")
     provider = SequenceResponseProvider(

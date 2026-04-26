@@ -276,6 +276,11 @@ def build_runtime_error_repair_checklist(visible: dict[str, Any]) -> str:
             "- TypeError 'slice indices must be integers': convert ITEM-COUNT with int(input_record[6:8]) before using it; "
             "do not slice range(...) with input_record[6:8]; for OCCURS use range(count) with start = 8 + idx * 9."
         )
+    if "'slice' object is not callable" in errors:
+        lines.append(
+            "- TypeError 'slice' object is not callable: do not call slice objects like field(input_record); "
+            "read fields with direct string slicing such as input_record[start:end]. Avoid generic layout parsers unless every slice is applied with data[slice_obj]."
+        )
     if "invalid format string" in errors or "unsupported format string passed to decimal.Decimal" in errors:
         lines.append(
             "- Decimal formatting error: convert monetary totals to integer cents before using :09d; "
