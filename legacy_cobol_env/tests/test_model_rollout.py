@@ -338,6 +338,32 @@ def test_repair_prompt_includes_unknown_tax_key_guidance():
     assert "tax_rates.get(tax_code, Decimal(\"0.0000\"))" in repair_prompt
 
 
+def test_repair_prompt_includes_record_comprehension_scope_guidance():
+    task = load_task(task_id="invoice_occurs_001")
+    provider = RecordingProvider(
+        responses=[
+            json.dumps(
+                {
+                    "code": "def migrate(input_record: str) -> str:\n"
+                    "    record = {\n"
+                    "        'ITEM-COUNT': int(input_record[6:8]),\n"
+                    "        'LINE-ITEMS': [input_record[i:i+9] for i in range(0, 36, 9)[:record['ITEM-COUNT']]],\n"
+                    "    }\n"
+                    "    return ''\n"
+                }
+            ),
+            json.dumps({"code": solution_for_task(task)}),
+        ],
+    )
+
+    run_model_repair_rollout(task=task, provider=provider, max_repairs=1)
+
+    repair_prompt = provider.prompts[1]
+    assert "cannot access local variable 'record'" in repair_prompt
+    assert "do not reference record while constructing it" in repair_prompt
+    assert "count = int(input_record[6:8])" in repair_prompt
+
+
 def test_invoice_repair_rollout_has_step_budget_for_diff_and_final_submission():
     task = load_task(task_id="invoice_occurs_001")
     provider = SequenceResponseProvider(
