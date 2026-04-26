@@ -1,6 +1,6 @@
 {
   "status": "dry_run",
-  "created_at": "2026-04-25T19:35:25.670301+00:00",
+  "created_at": "2026-04-26T06:41:39.690103+00:00",
   "note": "Scaffolding artifact only; no GPU training has been run.",
   "plan": {
     "dataset": "legacy_cobol_env/outputs/training/oracle_sft.jsonl",
@@ -17,6 +17,7 @@
     "load_in_4bit": true,
     "bf16": true,
     "dataset_examples": 15,
+    "dataset_sha256": "8b42c98c967e567ff9e95dd906b04ef5f7df9a0c2dfd898a0a3553dd0eb8d594",
     "families": [
       "account_status_level88",
       "claims_eligibility_branching",

@@ -1,6 +1,12 @@
 import json
 
-from legacy_cobol_env.eval.model_rollout import extract_code_from_response, run_model_repair_rollout, run_model_rollout
+from legacy_cobol_env.eval.model_rollout import (
+    extract_code_from_response,
+    extract_tool_action_from_response,
+    run_model_repair_rollout,
+    run_model_rollout,
+    run_tool_choice_rollout,
+)
 from legacy_cobol_env.eval.oracle_solutions import solution_for_task
 from legacy_cobol_env.eval.providers import (
     HuggingFaceChatProvider,
@@ -71,6 +77,15 @@ def test_extract_code_keeps_used_disallowed_import_for_safety_check():
     assert "from copy import deepcopy" in extract_code_from_response(response)
 
 
+def test_extract_tool_action_from_json_response():
+    response = '```json\n{"tool_name": "read_cobol_file", "arguments": {"filename": "PAYROLL.cbl"}}\n```'
+
+    tool_name, arguments = extract_tool_action_from_response(response)
+
+    assert tool_name == "read_cobol_file"
+    assert arguments == {"filename": "PAYROLL.cbl"}
+
+
 def test_model_rollout_uses_provider_response_and_records_prompt():
     task = all_tasks()[0]
     provider = StaticResponseProvider(
@@ -85,6 +100,45 @@ def test_model_rollout_uses_provider_response_and_records_prompt():
     assert trajectory["model_turns"][0]["provider"] == "fixture"
     assert "PAYROLL.cbl" in trajectory["model_turns"][0]["prompt"]
     assert [step["tool_name"] for step in trajectory["steps"]][-3:] == [
+        "write_python_solution",
+        "run_visible_tests",
+        "submit_final",
+    ]
+
+
+def test_tool_choice_rollout_starts_from_ticket_and_records_tool_metrics():
+    task = all_tasks()[0]
+    provider = SequenceResponseProvider(
+        name="tool-choice-fixture",
+        responses=[
+            json.dumps({"tool_name": "read_cobol_file", "arguments": {"filename": "PAYROLL.cbl"}}),
+            json.dumps({"tool_name": "read_copybook", "arguments": {"filename": "EMPLOYEE_PAY.cpy"}}),
+            json.dumps({"tool_name": "parse_copybook_layout", "arguments": {"filename": "EMPLOYEE_PAY.cpy"}}),
+            json.dumps({"tool_name": "inspect_business_rules", "arguments": {}}),
+            json.dumps({"tool_name": "write_python_solution", "arguments": {"code": solution_for_task(task)}}),
+            json.dumps({"tool_name": "run_visible_tests", "arguments": {"draft_id": 1}}),
+            json.dumps({"tool_name": "submit_final", "arguments": {"draft_id": 1}}),
+        ],
+    )
+
+    trajectory = run_tool_choice_rollout(task=task, provider=provider)
+
+    assert trajectory["rollout_mode"] == "tool_choice"
+    assert trajectory["final"]["public_score"] == 1.0
+    assert trajectory["tool_metrics"] == {
+        "files_read": 1,
+        "copybooks_read": 1,
+        "layouts_parsed": 1,
+        "visible_runs": 1,
+        "diffs_inspected": 0,
+        "steps_used": 7,
+    }
+    assert "PAYROLLNET" not in trajectory["model_turns"][0]["prompt"]
+    assert [step["tool_name"] for step in trajectory["steps"]] == [
+        "read_cobol_file",
+        "read_copybook",
+        "parse_copybook_layout",
+        "inspect_business_rules",
         "write_python_solution",
         "run_visible_tests",
         "submit_final",

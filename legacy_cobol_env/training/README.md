@@ -43,12 +43,14 @@ trained-vs-baseline improvement.
 
 The dry-run path writes scaffold evidence without GPU access:
 
-- `outputs/training/sft_run_metadata.json`
-- `outputs/training/sft_loss.csv`
-- `outputs/training/sft_loss.svg`
+- `outputs/training/dry_run_metadata.json`
+- `outputs/training/dry_run_loss.csv`
+- `outputs/training/dry_run_loss.svg`
 
 These files prove the training command wiring. They are not a trained model
-result and should not be described as model improvement.
+result and should not be described as model improvement. Real GPU training
+writes `sft_run_metadata.json`, `sft_loss.csv`, and `sft_loss.svg` only after
+`train_sft` completes.
 
 ## Next GPU Step
 

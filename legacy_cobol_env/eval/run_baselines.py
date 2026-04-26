@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from statistics import mean
+from datetime import UTC, datetime
 
 from openenv.core.env_server.mcp_types import CallToolAction
 
@@ -109,6 +110,7 @@ def main() -> None:
         results.append(run_policy("blank_width", task, blank_width_solution(task.metadata["output_width"])))
 
     summary = {
+        "created_at": datetime.now(UTC).isoformat(),
         "policies": sorted({row["policy"] for row in results}),
         "task_count": len(all_tasks()),
         "mean_public_score": {

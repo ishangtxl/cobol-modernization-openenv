@@ -10,7 +10,7 @@ from typing import Any
 from legacy_cobol_env.eval.providers import TextProvider
 from legacy_cobol_env.eval.trajectory import call_tool
 from legacy_cobol_env.server.sandbox import ALLOWED_IMPORTS, FORBIDDEN_IMPORTS
-from legacy_cobol_env.server.legacy_cobol_env_environment import LegacyCobolEnvironment
+from legacy_cobol_env.server.legacy_cobol_env_environment import LegacyCobolEnvironment, MAX_STEPS
 from legacy_cobol_env.server.task_bank import TaskInstance
 
 
@@ -44,6 +44,28 @@ def extract_code_from_response(response: str) -> str:
     if "def migrate" in unfenced:
         return _remove_unused_disallowed_imports(unfenced)
     raise ValueError("model response did not contain JSON with a code field")
+
+
+def extract_tool_action_from_response(response: str) -> tuple[str, dict[str, Any]]:
+    candidates = [response.strip(), _strip_fence(response.strip())]
+    start = response.find("{")
+    end = response.rfind("}")
+    if 0 <= start < end:
+        candidates.append(response[start : end + 1])
+
+    for candidate in candidates:
+        try:
+            data = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(data, dict):
+            continue
+        action = data.get("action") if isinstance(data.get("action"), dict) else data
+        tool_name = action.get("tool_name")
+        arguments = action.get("arguments", {})
+        if isinstance(tool_name, str) and isinstance(arguments, dict):
+            return tool_name, arguments
+    raise ValueError("model response did not contain JSON with tool_name and arguments")
 
 
 def _load_response_object(candidate: str) -> object | None:
@@ -104,6 +126,7 @@ def run_model_rollout(
 
     return {
         "policy": provider.name,
+        "rollout_mode": "codegen_assisted",
         "task_id": task.task_id,
         "family_id": task.family_id,
         "ticket": ticket,
@@ -194,6 +217,7 @@ def run_model_repair_rollout(
     final = record("submit_final", {"draft_id": written["draft_id"]})
     return {
         "policy": provider.name,
+        "rollout_mode": "codegen_assisted",
         "task_id": task.task_id,
         "family_id": task.family_id,
         "ticket": ticket,
@@ -214,6 +238,149 @@ def run_model_repair_rollout(
             "fresh_total": final["fresh_total"],
         },
         "steps": steps,
+    }
+
+
+def run_tool_choice_rollout(
+    task: TaskInstance,
+    provider: TextProvider,
+    max_steps: int = MAX_STEPS,
+) -> dict[str, Any]:
+    env = LegacyCobolEnvironment()
+    reset_observation = env.reset(task_id=task.task_id)
+    ticket = reset_observation.result["ticket"]
+    steps: list[dict[str, Any]] = []
+    model_turns: list[dict[str, Any]] = []
+    visible: dict[str, Any] | None = None
+    final: dict[str, Any] | None = None
+    error: str | None = None
+
+    for _ in range(max_steps):
+        prompt = build_tool_choice_prompt(ticket, steps)
+        response = provider.generate(prompt)
+        try:
+            tool_name, arguments = extract_tool_action_from_response(response)
+        except ValueError as exc:
+            error = str(exc)
+            model_turns.append({"provider": provider.name, "prompt": prompt, "response": response, "error": error})
+            break
+
+        saved_arguments = dict(arguments)
+        if "code" in saved_arguments:
+            saved_arguments["code_chars"] = len(str(saved_arguments.pop("code")))
+        model_turns.append(
+            {
+                "provider": provider.name,
+                "prompt": prompt,
+                "response": response,
+                "tool_name": tool_name,
+                "arguments": saved_arguments,
+            }
+        )
+        result, reward, done = call_tool(env, tool_name, **arguments)
+        steps.append(
+            {
+                "tool_name": tool_name,
+                "arguments": saved_arguments,
+                "reward": reward,
+                "done": done,
+                "result": result,
+            }
+        )
+        if tool_name == "run_visible_tests":
+            visible = result
+        if tool_name == "submit_final":
+            final = result
+            break
+        if done:
+            break
+
+    return {
+        "policy": provider.name,
+        "rollout_mode": "tool_choice",
+        "task_id": task.task_id,
+        "family_id": task.family_id,
+        "ticket": ticket,
+        "model_turns": model_turns,
+        "visible": _visible_summary(visible),
+        "final": _final_summary(final),
+        "tool_metrics": _tool_metrics(env),
+        "error": error,
+        "steps": steps,
+    }
+
+
+def build_tool_choice_prompt(ticket: dict[str, Any], steps: list[dict[str, Any]]) -> str:
+    return "\n\n".join(
+        [
+            "You are acting inside a legacy COBOL migration workbench.",
+            "Choose exactly one next tool call. Return only JSON in this shape: {\"tool_name\": \"...\", \"arguments\": {...}}.",
+            "Allowed tools: read_cobol_file, read_copybook, parse_copybook_layout, inspect_business_rules, write_python_solution, run_visible_tests, inspect_diff, submit_final.",
+            "Use write_python_solution with a code argument only after inspecting enough artifacts.",
+            "Use run_visible_tests after writing a draft, inspect_diff for failed visible cases, and submit_final when ready.",
+            f"Initial ticket:\n{json.dumps(ticket, indent=2)}",
+            f"Tool result history:\n{json.dumps(_history_for_prompt(steps), indent=2)}",
+        ]
+    )
+
+
+def _history_for_prompt(steps: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    history = []
+    for step in steps:
+        result = dict(step["result"])
+        history.append(
+            {
+                "tool_name": step["tool_name"],
+                "arguments": step["arguments"],
+                "reward": step["reward"],
+                "done": step["done"],
+                "result": result,
+            }
+        )
+    return history
+
+
+def _visible_summary(visible: dict[str, Any] | None) -> dict[str, Any]:
+    if visible is None:
+        return {"passed": 0, "total": 0, "pass_rate": 0.0, "failures": []}
+    return {
+        "passed": visible.get("passed", 0),
+        "total": visible.get("total", 0),
+        "pass_rate": visible.get("pass_rate", 0.0),
+        "failures": visible.get("failures", []),
+    }
+
+
+def _final_summary(final: dict[str, Any] | None) -> dict[str, Any]:
+    if final is None or "public_score" not in final:
+        return {
+            "public_score": 0.0,
+            "accepted": False,
+            "components": {},
+            "hidden_passed": None,
+            "hidden_total": None,
+            "fresh_passed": None,
+            "fresh_total": None,
+        }
+    return {
+        "public_score": final["public_score"],
+        "accepted": final["accepted"],
+        "components": final["components"],
+        "hidden_passed": final["hidden_passed"],
+        "hidden_total": final["hidden_total"],
+        "fresh_passed": final["fresh_passed"],
+        "fresh_total": final["fresh_total"],
+    }
+
+
+def _tool_metrics(env: LegacyCobolEnvironment) -> dict[str, int]:
+    return {
+        "files_read": len(env.state.files_read),
+        "copybooks_read": len(env.state.copybooks_read),
+        "layouts_parsed": len(env.state.layouts_parsed),
+        "visible_runs": env.state.visible_runs,
+        "diffs_inspected": len(env.state.diffs_inspected),
+        "steps_used": env.state.step_count,
     }
 
 
