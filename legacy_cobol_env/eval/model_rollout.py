@@ -283,8 +283,9 @@ def build_runtime_error_repair_checklist(visible: dict[str, Any]) -> str:
         )
     if "invalid format string" in errors or "unsupported format string passed to decimal.Decimal" in errors:
         lines.append(
-            "- Decimal formatting error: convert monetary totals to integer cents before using :09d; "
-            "for example cents = int((total * 100).quantize(Decimal(\"1\")))."
+            "- Decimal formatting error: do not format Decimal values with :d or include decimal points in fixed-width PIC V output. "
+            "Convert monetary totals to integer cents first, for example total_cents = int((total * Decimal(\"100\")).quantize(Decimal(\"1\"))), "
+            "then emit format(total_cents, \"09d\")."
         )
     if "object has no attribute 'to_string'" in errors:
         lines.append(

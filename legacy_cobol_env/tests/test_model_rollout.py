@@ -291,6 +291,30 @@ def test_repair_prompt_includes_decimal_to_string_guidance():
     assert "format(int(cents), \"09d\")" in repair_prompt
 
 
+def test_repair_prompt_includes_decimal_integer_format_guidance():
+    task = load_task(task_id="invoice_occurs_001")
+    provider = RecordingProvider(
+        responses=[
+            json.dumps(
+                {
+                    "code": "from decimal import Decimal\n\n"
+                    "def migrate(input_record: str) -> str:\n"
+                    "    total = Decimal('12.34')\n"
+                    "    return f\"{input_record[0:6]}{total:07d}00L\"\n"
+                }
+            ),
+            json.dumps({"code": solution_for_task(task)}),
+        ],
+    )
+
+    run_model_repair_rollout(task=task, provider=provider, max_repairs=1)
+
+    repair_prompt = provider.prompts[1]
+    assert "invalid format string" in repair_prompt
+    assert "do not format Decimal values with :d" in repair_prompt
+    assert "format(total_cents, \"09d\")" in repair_prompt
+
+
 def test_repair_prompt_includes_slice_object_callable_guidance():
     task = load_task(task_id="invoice_occurs_001")
     provider = RecordingProvider(
