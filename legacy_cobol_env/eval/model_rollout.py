@@ -34,9 +34,8 @@ def extract_code_from_response(response: str) -> str:
         candidates.append(response[start : end + 1])
 
     for candidate in candidates:
-        try:
-            data = json.loads(candidate)
-        except json.JSONDecodeError:
+        data = _load_response_object(candidate)
+        if data is None:
             continue
         if isinstance(data, dict) and isinstance(data.get("code"), str):
             return _remove_unused_disallowed_imports(data["code"])
@@ -45,6 +44,18 @@ def extract_code_from_response(response: str) -> str:
     if "def migrate" in unfenced:
         return _remove_unused_disallowed_imports(unfenced)
     raise ValueError("model response did not contain JSON with a code field")
+
+
+def _load_response_object(candidate: str) -> object | None:
+    try:
+        return json.loads(candidate)
+    except json.JSONDecodeError:
+        pass
+
+    try:
+        return ast.literal_eval(candidate)
+    except (SyntaxError, ValueError):
+        return None
 
 
 def run_model_rollout(

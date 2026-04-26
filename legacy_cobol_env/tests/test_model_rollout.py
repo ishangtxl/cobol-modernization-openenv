@@ -34,6 +34,20 @@ def test_extract_code_from_fenced_json_response():
     assert extract_code_from_response(response) == "def migrate(input_record: str) -> str:\n    return input_record\n"
 
 
+def test_extract_code_from_fenced_json_with_python_escaped_single_quotes():
+    response = """```json
+{
+  "code": "from decimal import Decimal\\n\\ndef migrate(input_record: str) -> str:\\n    return f'{Decimal(\\'0.01\\')}'\\n"
+}
+```"""
+
+    code = extract_code_from_response(response)
+
+    assert code.startswith("from decimal import Decimal")
+    assert "def migrate" in code
+    assert '"code"' not in code
+
+
 def test_extract_code_removes_unused_disallowed_import_from_model_response():
     response = json.dumps(
         {
