@@ -314,6 +314,8 @@ def customer_task() -> TaskInstance:
         case_from("hidden_1", "unknown status maps closed", customer_record("C1004", "DEV", "NAIR", 70007, "X", 0), customer_ref),
         case_from("hidden_2", "long first and last names", customer_record("C1005", "ELIZABETH", "MUKHERJEE-RAO", 40001, "A", 100), customer_ref),
         case_from("hidden_3", "zip leading zero preserved", customer_record("C1006", "FINN", "ODELL", 501, "S", 54321), customer_ref),
+        case_from("hidden_4", "zero ZIP and max balance width", customer_record("C1007", "GAURI", "PATEL", 0, "A", 999999), customer_ref),
+        case_from("hidden_5", "long combined name truncates after comma", customer_record("C1008", "MAXIMILIAN", "VANDERBILT-SR", 90210, "Z", 42), customer_ref),
     ]
     out = [
         field("OUT-CUST-ID", 0, 5, "X(5)"),
@@ -438,6 +440,8 @@ def claims_task() -> TaskInstance:
         case_from("hidden_1", "minor denial takes precedence", claims_record("CLM004", 17, "B", 60, "N", 250000), claims_ref),
         case_from("hidden_2", "plan B large claim review precedes preauth", claims_record("CLM005", 30, "B", 10, "N", 175000), claims_ref),
         case_from("hidden_3", "boundary amount approved", claims_record("CLM006", 30, "A", 30, "N", 100000), claims_ref),
+        case_from("hidden_4", "plan B exact threshold does not review", claims_record("CLM007", 44, "B", 30, "Y", 150000), claims_ref),
+        case_from("hidden_5", "plan B review beats preauth and length branches", claims_record("CLM008", 65, "B", 60, "N", 150001), claims_ref),
     ]
     out = [field("OUT-CLAIM-ID", 0, 6, "X(6)"), field("OUT-DECISION", 6, 7, "X"), field("OUT-REASON", 7, 9, "X(2)")]
     return TaskInstance(
@@ -550,6 +554,8 @@ def account_task() -> TaskInstance:
         case_from("hidden_1", "closed overrides delinquency", account_record("A00004", "C", -500, 200), account_ref),
         case_from("hidden_2", "90 day delinquency boundary", account_record("A00005", "A", 0, 90), account_ref),
         case_from("hidden_3", "positive active account", account_record("A00006", "A", 10, 89), account_ref),
+        case_from("hidden_4", "delinquency beats overdraft", account_record("A00007", "A", -100, 90), account_ref),
+        case_from("hidden_5", "unknown status still evaluates balance", account_record("A00008", "X", -1, 0), account_ref),
     ]
     out = [field("OUT-ACCOUNT-ID", 0, 6, "X(6)"), field("OUT-CATEGORY", 6, 8, "X(2)"), field("OUT-ACTION", 8, 9, "X")]
     return TaskInstance(
@@ -711,6 +717,8 @@ def invoice_task() -> TaskInstance:
         case_from("hidden_2", "count ignores padded groups", invoice_record("I00005", [(1, 100, "N")]), invoice_ref),
         case_from("hidden_3", "threshold flag high with luxury code", invoice_record("I00006", [(4, 30000, "L")]), invoice_ref),
         case_from("hidden_4", "reduced code generalization", invoice_record("I00007", [(7, 22222, "R"), (2, 10101, "S")]), invoice_ref),
+        case_from("hidden_5", "unknown tax code is zero-rated with mixed lines", invoice_record("I00008", [(9, 9999, "X"), (1, 1, "S")]), invoice_ref),
+        case_from("hidden_6", "four line mixed tax rounding", invoice_record("I00009", [(1, 101, "S"), (2, 202, "R"), (3, 303, "L"), (4, 404, "N")]), invoice_ref),
     ]
     out = [
         field("OUT-INVOICE-ID", 0, 6, "X(6)"),
@@ -851,6 +859,8 @@ def date_task() -> TaskInstance:
         case_from("hidden_1", "non-leap invalid February", date_record("P00004", "230229", 50, 1000), date_ref),
         case_from("hidden_2", "window boundary goes 19xx", date_record("P00005", "500101", 50, 4321), date_ref),
         case_from("hidden_3", "valid leap day 2000", date_record("P00006", "000229", 50, 555), date_ref),
+        case_from("hidden_4", "invalid day for thirty day month", date_record("P00007", "240431", 50, 700), date_ref),
+        case_from("hidden_5", "window below cutoff goes 20xx", date_record("P00008", "691231", 70, 123), date_ref),
     ]
     out = [
         field("OUT-POLICY-ID", 0, 6, "X(6)"),
@@ -939,6 +949,6 @@ def load_task(seed: int | None = None, task_id: str | None = None) -> TaskInstan
     return tasks[seed % len(tasks)]
 
 
-def generate_fresh_tests(task: TaskInstance, seed: int | None = None, n: int = 6) -> list[TestCase]:
+def generate_fresh_tests(task: TaskInstance, seed: int | None = None, n: int = 10) -> list[TestCase]:
     generator = FRESH_GENERATORS[task.family_id]
     return generator(seed if seed is not None else task.metadata["fresh_seed"], n)

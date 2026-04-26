@@ -70,12 +70,21 @@ Build and smoke-test the Docker image:
 
 ```bash
 cd legacy_cobol_env
+docker build -t legacy-cobol-env:plain .
+docker run -d --rm --name legacy-cobol-env-plain -p 18000:8000 legacy-cobol-env:plain
+curl -sS http://127.0.0.1:18000/health
+curl -sS -X POST http://127.0.0.1:18000/reset -H 'Content-Type: application/json' -d '{"task_id":"payroll_net_pay_001"}'
+docker stop legacy-cobol-env-plain
+
 ../.venv/bin/openenv build -t legacy-cobol-env:local
 docker run -d --rm --name legacy-cobol-env-smoke -p 18000:8000 legacy-cobol-env:local
 curl -sS http://127.0.0.1:18000/health
 curl -sS -X POST http://127.0.0.1:18000/reset -H 'Content-Type: application/json' -d '{"task_id":"payroll_net_pay_001"}'
 docker stop legacy-cobol-env-smoke
 ```
+
+The plain REST API keeps one current episode for `/reset`, `/step`, and `/state`.
+For concurrent interactive sessions, use the WebSocket/MCP endpoints exposed by OpenEnv.
 
 ## Reward Components
 
@@ -206,10 +215,11 @@ Artifacts:
 Run the root submission inference script:
 
 ```bash
+cd legacy_cobol_env
 API_BASE_URL="https://..." MODEL_NAME="..." HF_TOKEN="..." python inference.py --max-repairs 1
 ```
 
-The root script uses `openai.OpenAI`, emits `[START]`, one `[STEP]` per task, and `[END]`, and defaults to all six tasks.
+The submission script uses `openai.OpenAI`, emits `[START]`, one `[STEP]` per task, and `[END]`, and defaults to all six tasks.
 
 Generate SFT warm-start data:
 
@@ -259,7 +269,9 @@ Implemented:
 - Provider-backed model rollout harness for Azure OpenAI and Hugging Face endpoints
 - Compiler-backed GnuCOBOL oracle check for the hard invoice task
 - Root Dockerfile, root `inference.py`, root `openenv.yaml`, and root README for submission gates
+- `legacy_cobol_env/Dockerfile` and `legacy_cobol_env/inference.py` for submitting `legacy_cobol_env` directly as the Space/repo root
 - Typed project action, observation, reward, and state schemas surfaced at `/schema`
+- Persistent REST `/reset`, `/step`, and `/state` semantics for the current episode
 - Max-step and post-terminal no-op enforcement
 - Score summary, model-score plot, oracle SFT warm-start dataset, and SFT dry-run artifacts
 

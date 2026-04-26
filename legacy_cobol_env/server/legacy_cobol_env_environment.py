@@ -248,9 +248,12 @@ class LegacyCobolEnvironment(MCPEnvironment):
             self._set_outcome("read_cobol_file", 0.0, "Unknown COBOL file.")
             return {"ok": False, "error": f"unknown COBOL file: {filename}"}
 
+        first_read = filename not in self._state.files_read
         if filename not in self._state.files_read:
             self._state.files_read.append(filename)
-        self._set_outcome("read_cobol_file", 0.02, f"Read {filename}.")
+        reward = 0.02 if first_read else 0.0
+        summary = f"Read {filename}." if first_read else f"{filename} was already read."
+        self._set_outcome("read_cobol_file", reward, summary)
         return {"ok": True, "filename": filename, "content": content, "truncated": False}
 
     def _read_copybook(self, filename: str) -> dict[str, Any]:
@@ -259,9 +262,12 @@ class LegacyCobolEnvironment(MCPEnvironment):
             self._set_outcome("read_copybook", 0.0, "Unknown copybook.")
             return {"ok": False, "error": f"unknown copybook: {filename}"}
 
+        first_read = filename not in self._state.copybooks_read
         if filename not in self._state.copybooks_read:
             self._state.copybooks_read.append(filename)
-        self._set_outcome("read_copybook", 0.02, f"Read {filename}.")
+        reward = 0.02 if first_read else 0.0
+        summary = f"Read {filename}." if first_read else f"{filename} was already read."
+        self._set_outcome("read_copybook", reward, summary)
         return {"ok": True, "filename": filename, "content": content}
 
     def _parse_copybook_layout(self, filename: str) -> dict[str, Any]:
@@ -269,12 +275,19 @@ class LegacyCobolEnvironment(MCPEnvironment):
             self._set_outcome("parse_copybook_layout", 0.0, "Unknown copybook.")
             return {"ok": False, "error": f"unknown copybook: {filename}"}
 
+        first_parse = filename not in self._state.layouts_parsed
         if filename not in self._state.layouts_parsed:
             self._state.layouts_parsed.append(filename)
+        reward = 0.03 if first_parse else 0.0
+        summary = (
+            f"Parsed layout for {filename}."
+            if first_parse
+            else f"Layout for {filename} was already parsed."
+        )
         self._set_outcome(
             "parse_copybook_layout",
-            0.03,
-            f"Parsed layout for {filename}.",
+            reward,
+            summary,
         )
         layout = copybook_layout_for(self._task, filename)
         return {
@@ -284,7 +297,15 @@ class LegacyCobolEnvironment(MCPEnvironment):
         }
 
     def _inspect_business_rules(self) -> dict[str, Any]:
-        self._set_outcome("inspect_business_rules", 0.01, "Inspected business rules.")
+        first_inspection = not self._state.business_rules_inspected
+        self._state.business_rules_inspected = True
+        reward = 0.01 if first_inspection else 0.0
+        summary = (
+            "Inspected business rules."
+            if first_inspection
+            else "Business rules were already inspected."
+        )
+        self._set_outcome("inspect_business_rules", reward, summary)
         return {"ok": True, "rules": self._task.metadata["business_rules"]}
 
     def _write_python_solution(self, code: str) -> dict[str, Any]:
@@ -325,12 +346,21 @@ class LegacyCobolEnvironment(MCPEnvironment):
 
         result = evaluate_code(code_or_error, self._task.visible_tests)
         self._last_visible_results[str(selected_id)] = result
+        previous_best = self._state.best_visible_pass_rate
         self._state.visible_runs += 1
         self._state.best_visible_pass_rate = max(
             self._state.best_visible_pass_rate,
             result.pass_rate,
         )
-        reward = 0.05 * result.pass_rate
+        improvement = max(0.0, result.pass_rate - previous_best)
+        first_valid_run = (
+            self._state.visible_runs == 1
+            and result.safety_ok
+            and result.interface_ok
+            and not result.timed_out
+        )
+        reward = (0.02 if first_valid_run else 0.0) + (0.08 * improvement)
+        reward = round(self._clamp_score(reward), 4)
         self._set_outcome(
             "run_visible_tests",
             reward,
@@ -365,7 +395,16 @@ class LegacyCobolEnvironment(MCPEnvironment):
             return {"ok": True, "case_id": case_id, "passed": True, "field_diffs": []}
 
         field_diffs = self._field_diffs(case)
-        self._set_outcome("inspect_diff", 0.02, f"Inspected diff for {case_id}.")
+        first_inspection = case_id not in self._state.diffs_inspected
+        if first_inspection:
+            self._state.diffs_inspected.append(case_id)
+        reward = 0.02 if first_inspection else 0.0
+        summary = (
+            f"Inspected diff for {case_id}."
+            if first_inspection
+            else f"Diff for {case_id} was already inspected."
+        )
+        self._set_outcome("inspect_diff", reward, summary)
         return {
             "ok": True,
             "case_id": case_id,

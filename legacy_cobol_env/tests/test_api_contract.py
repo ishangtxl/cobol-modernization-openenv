@@ -165,3 +165,64 @@ def test_schema_exposes_project_typed_state_fields():
         "reward_components",
     ]:
         assert field_name in state_properties
+
+
+def test_rest_reset_step_and_state_share_one_episode():
+    client = TestClient(app)
+
+    reset = client.post("/reset", json={"task_id": "invoice_occurs_001"})
+    assert reset.status_code == 200
+    assert reset.json()["observation"]["result"]["ticket"]["task_id"] == "invoice_occurs_001"
+
+    step = client.post(
+        "/step",
+        json={
+            "action": {
+                "tool_name": "read_cobol_file",
+                "arguments": {"filename": "INVTOTAL.cbl"},
+            }
+        },
+    )
+    assert step.status_code == 200
+    step_body = step.json()
+    assert step_body["observation"]["result"]["data"]["ok"] is True
+    assert step_body["reward"] == 0.02
+
+    state = client.get("/state")
+    assert state.status_code == 200
+    state_body = state.json()
+    assert state_body["task_id"] == "invoice_occurs_001"
+    assert state_body["files_read"] == ["INVTOTAL.cbl"]
+    assert state_body["last_tool"] == "read_cobol_file"
+    assert state_body["step_count"] == 1
+
+
+def test_redundant_discovery_actions_do_not_repeat_progress_reward():
+    env = LegacyCobolEnvironment()
+    env.reset(task_id="payroll_net_pay_001")
+
+    first_read = call_obs(env, "read_cobol_file", filename="PAYROLL.cbl")
+    duplicate_read = call_obs(env, "read_cobol_file", filename="PAYROLL.cbl")
+    first_parse = call_obs(env, "parse_copybook_layout", filename="EMPLOYEE_PAY.cpy")
+    duplicate_parse = call_obs(env, "parse_copybook_layout", filename="EMPLOYEE_PAY.cpy")
+    first_rules = call_obs(env, "inspect_business_rules")
+    duplicate_rules = call_obs(env, "inspect_business_rules")
+
+    assert first_read.reward == 0.02
+    assert duplicate_read.reward == 0.0
+    assert first_parse.reward == 0.03
+    assert duplicate_parse.reward == 0.0
+    assert first_rules.reward == 0.01
+    assert duplicate_rules.reward == 0.0
+
+
+def test_visible_test_reward_only_pays_for_new_progress():
+    env = LegacyCobolEnvironment()
+    env.reset(task_id="payroll_net_pay_001")
+
+    written = result_data(call_obs(env, "write_python_solution", code=GOOD_SOLUTION))
+    first_visible = call_obs(env, "run_visible_tests", draft_id=written["draft_id"])
+    repeated_visible = call_obs(env, "run_visible_tests", draft_id=written["draft_id"])
+
+    assert first_visible.reward == 0.1
+    assert repeated_visible.reward == 0.0

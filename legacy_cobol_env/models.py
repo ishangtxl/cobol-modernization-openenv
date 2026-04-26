@@ -66,6 +66,8 @@ class LegacyCobolState(State):
     files_read: list[str] = Field(default_factory=list)
     copybooks_read: list[str] = Field(default_factory=list)
     layouts_parsed: list[str] = Field(default_factory=list)
+    business_rules_inspected: bool = Field(default=False)
+    diffs_inspected: list[str] = Field(default_factory=list)
     draft_count: int = Field(default=0)
     visible_runs: int = Field(default=0)
     best_visible_pass_rate: float = Field(default=0.0)
