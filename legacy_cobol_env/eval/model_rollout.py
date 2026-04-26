@@ -293,7 +293,7 @@ def build_runtime_error_repair_checklist(visible: dict[str, Any]) -> str:
         )
     if "NameError: name 'Decimal' is not defined" in errors:
         lines.append("- Decimal NameError: include from decimal import Decimal at module scope if Decimal is used.")
-    if "KeyError" in errors and "TAX-CODE" in errors:
+    if "KeyError" in errors and ("TAX-CODE" in errors or re.search(r"KeyError: ['\"][A-Z0-9]['\"]", errors)):
         lines.append("- Tax lookup KeyError: use tax_rates.get(tax_code, Decimal(\"0.0000\")) for unknown/non-taxable codes.")
     if len(lines) == 1:
         lines.append("- No recognized runtime pattern; fix the exception shown in Visible test status/failures before changing formatting.")

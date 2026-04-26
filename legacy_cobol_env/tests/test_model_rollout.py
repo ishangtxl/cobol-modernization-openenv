@@ -314,6 +314,30 @@ def test_repair_prompt_includes_slice_object_callable_guidance():
     assert "input_record[start:end]" in repair_prompt
 
 
+def test_repair_prompt_includes_unknown_tax_key_guidance():
+    task = load_task(task_id="invoice_occurs_001")
+    provider = RecordingProvider(
+        responses=[
+            json.dumps(
+                {
+                    "code": "from decimal import Decimal\n\n"
+                    "def migrate(input_record: str) -> str:\n"
+                    "    tax_rates = {'S': Decimal('0.0725')}\n"
+                    "    return tax_rates['N']\n"
+                }
+            ),
+            json.dumps({"code": solution_for_task(task)}),
+        ],
+    )
+
+    run_model_repair_rollout(task=task, provider=provider, max_repairs=1)
+
+    repair_prompt = provider.prompts[1]
+    assert "KeyError: 'N'" in repair_prompt
+    assert "unknown/non-taxable" in repair_prompt
+    assert "tax_rates.get(tax_code, Decimal(\"0.0000\"))" in repair_prompt
+
+
 def test_invoice_repair_rollout_has_step_budget_for_diff_and_final_submission():
     task = load_task(task_id="invoice_occurs_001")
     provider = SequenceResponseProvider(
